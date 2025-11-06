@@ -1,1 +1,3 @@
 # Snag
+
+Snag is a trading platform designed to transform how students in campus housing exchange everyday items. Snag aims to make item trading effortless, safe, and rewarding by turning “extras into essentials.” Students often face financial pressure, limited storage space, and frequent transitions in housing and living arrangements. These conditions create a surplus of items that are often thrown away during semester move-outs or left unused in dorm rooms. Snag addresses this need by creating a credit-based trading system that allows users to list items easily, claim what they need, and build a culture of reuse within their campus community. 
