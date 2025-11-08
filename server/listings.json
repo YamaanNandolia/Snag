@@ -1,5 +1,29 @@
 [
   {
+    "title": "game",
+    "description": "aaaaaaaaaaaaaaaaaaa",
+    "condition": "like-new",
+    "tags": [
+      "Dorm"
+    ],
+    "isBarter": false,
+    "credits": 30000,
+    "meetingSpot": "Main Library Lobby",
+    "meetingTime": "11/09/2025 at 5:00 PM",
+    "id": "1762645443707",
+    "sellerId": "user_1",
+    "sellerName": "JoonYoungMa",
+    "sellerVerified": "undefined",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "image": "http://localhost:3001/uploads/1762645443719-2h.png",
+    "seller": {
+      "name": "JoonYoungMa",
+      "verified": false
+    }
+  },
+  {
     "title": "Table",
     "description": "d11111111111111111111",
     "credits": 28,
