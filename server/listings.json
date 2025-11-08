@@ -1,0 +1,46 @@
+[
+  {
+    "title": "Table",
+    "description": "d11111111111111111111",
+    "credits": 28,
+    "condition": "like-new",
+    "tags": "[\"Furniture\",\"Vintage\"]",
+    "meetingSpot": "Main Library Lobby",
+    "meetingTime": "11/09/2025 at 12:00 PM",
+    "id": "1762642090792",
+    "sellerId": "user_1",
+    "sellerName": "Ryan Mehta",
+    "sellerVerified": "undefined",
+    "status": "active",
+    "views": "0",
+    "postedTime": "Just now",
+    "isBarter": "false",
+    "image": "http://localhost:3001/uploads/1762642090798-2025-02-25 (1).png",
+    "seller": {
+      "name": "Ryan Mehta",
+      "verified": false
+    }
+  },
+  {
+    "title": "test11111",
+    "description": "11111111111111111111",
+    "credits": 10,
+    "condition": "like-new",
+    "tags": "[\"Apparel\",\"Vintage\"]",
+    "meetingSpot": "Recreation Center Lobby",
+    "meetingTime": "11/09/2025 at 3:00 PM",
+    "id": "1762642027064",
+    "sellerId": "user_1",
+    "sellerName": "Ryan Mehta",
+    "sellerVerified": "undefined",
+    "status": "active",
+    "views": "0",
+    "postedTime": "Just now",
+    "isBarter": "false",
+    "image": "http://localhost:3001/uploads/1762642027079-2025-02-11 (3).png",
+    "seller": {
+      "name": "Ryan Mehta",
+      "verified": false
+    }
+  }
+]
