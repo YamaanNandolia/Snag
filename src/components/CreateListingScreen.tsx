@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from './ui/label';
 import { Badge } from './ui/badge';
 
-const TAGS = ['Textbook', 'Furniture', 'Apparel', 'Electronics', 'Sports', 'Dorm', 'Vintage', 'Audio'];
+const TAGS = ['Textbooks', 'Furniture', 'Apparel', 'Dorm', 'Lab/Tech', 'Electronics', 'Kitchen', 'Seasonal'];
 const MEETING_SPOTS = [
   { id: 1, name: 'Main Library Lobby', hours: '24/7', popular: true },
   { id: 2, name: 'Student Union Entrance', hours: '6am - 11pm', popular: true },
