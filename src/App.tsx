@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { io, Socket } from 'socket.io-client'; 
+// import { useState, useEffect } from 'react';
 import HomeScreen from './components/HomeScreen';
-import EventsScreen from './components/EventsScreen';
+// import EventsScreen from './components/EventsScreen';
+import CirclesScreen from './components/CirclesScreen';
 import CreateListingScreen from './components/CreateListingScreen';
 import ProfileScreen from './components/ProfileScreen';
 import SettingsScreen from './components/SettingsScreen';
@@ -28,6 +31,7 @@ import SendFeedbackScreen from './components/SendFeedbackScreen';
 import { CheckCircle, Package, ArrowLeftRight, Calendar } from 'lucide-react';
 import { Toaster } from './components/ui/sonner';
 
+
 export interface Notification {
   id: number;
   type: string;
@@ -45,7 +49,8 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [latestListing, setLatestListing] = useState<any>(null);
   const [myListings, setMyListings] = useState<any[]>([]); 
-  const [currentUser, setCurrentUser] = useState({ id: 'user_1', name: 'Ryan Mehta' });
+  // const [currentUser, setCurrentUser] = useState({ id: 'user_1', name: 'Ryan Mehta' });
+  const [currentUser, setCurrentUser] = useState({ id: 'user_2', name: 'Mahel' });
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     icon?: React.ReactNode;
@@ -83,7 +88,7 @@ export default function App() {
     }
   ]);
   const [notificationCount, setNotificationCount] = useState(2);
-
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (showSplash) {
@@ -91,26 +96,49 @@ export default function App() {
         setShowSplash(false);
         setCurrentScreen('home');
       }, 2500);
-      return () => clearTimeout(timer);
+      return () => clearTimeout(timer); 
     }
-  }, [showSplash]);
+    console.log('tset: app is starting');
+    fetch('http://localhost:3001/api/listings') 
+      .then(res => res.json())
+      .then((data: any[]) => {
+        console.log('test: bring list from server', data.length, 'done');
+        setMyListings(data); 
+      })
+      .catch(err => {
+        console.error('error in bring list from server', err);
+      });
 
+    if (!socketRef.current) {
+      socketRef.current = io('http://localhost:3001');
+      
+      socketRef.current.emit('register', { userId: currentUser.id });
 
-  useEffect(() => {
+      socketRef.current.on('newNotification', (data) => {
+        console.log('Socket info accept:', data);
+        addNotification(data.type, data.title, data.message);
+      });
 
-    if (!showSplash) {
-      console.log('앱 시작: 서버에서 물품 리스트를 가져옵니다...');
-      fetch('/api/listings') 
-        .then(res => res.json())
-        .then((data: any[]) => {
-          console.log('서버에서 물품 리스트 가져오기 성공:', data);
-          setMyListings(data); 
-        })
-        .catch(err => {
-          console.error('서버에서 물품 리스트를 가져오는 데 실패했습니다:', err);
+      socketRef.current.on('newListing', (newListingData) => {
+        console.log('Socket: new listed item', newListingData.title);
+        
+        setMyListings(prevListings => {
+          if (prevListings.find(item => item.id === newListingData.id)) {
+            return prevListings;
+          }
+          return [newListingData, ...prevListings];
         });
+      });
     }
-  }, [showSplash]); 
+    
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+
+  }, [showSplash, currentUser.id]); 
 
 
 
@@ -140,7 +168,6 @@ export default function App() {
   };
 
   const handleNotificationClick = (notification: Notification) => {
-    // (기존 코드 - 변경 없음)
     if (notification.type === 'listing' && notification.listingData) {
       setListingModal({
         isOpen: true,
@@ -151,8 +178,6 @@ export default function App() {
 
 
   const handleListingPublish = async (formData: FormData) => {
-    
-
     const newId = Date.now();
     formData.append('id', String(newId)); 
     formData.append('sellerId', currentUser.id);
@@ -161,12 +186,10 @@ export default function App() {
     formData.append('status', 'active');
     formData.append('views', '0');
     formData.append('postedTime', 'Just now');
-    
-
     try {
       console.log('Sending FormData to server...');
 
-      const response = await fetch('/api/listings', {
+      const response = await fetch('http://localhost:3001/api/listings', {
         method: 'POST',
         body: formData, 
       });
@@ -177,9 +200,6 @@ export default function App() {
       
       const createdListing = await response.json();
       console.log('Save successed on server:', createdListing.title);
-
-      setMyListings(prev => [createdListing, ...prev]);
-      setLatestListing(createdListing);
       
       addNotification('listing', 'Listing published', 'Your item is now visible to all campus students', createdListing);
       
@@ -214,7 +234,7 @@ export default function App() {
     name: newProfileData.name, 
   }));
 
-  console.log('사용자 이름이 변경되었습니다:', newProfileData.name);
+  console.log('Username is changed:', newProfileData.name);
   navigateTo('settings');
 };
 
@@ -227,6 +247,14 @@ export default function App() {
         'Meeting Confirmed!',
         `Your meetup is scheduled at ${selectedMeetingSpot || 'Main Library Lobby'}`
       );
+      if (socketRef.current && selectedItem) {
+      socketRef.current.emit('snagItem', {
+        sellerId: selectedItem.seller.id, 
+        buyerName: currentUser.name,      
+        itemName: selectedItem.title,      
+      });
+    }
+
     }
 
     if (screen === 'notifications') {
@@ -252,8 +280,10 @@ export default function App() {
     switch (currentScreen) {
       case 'home':
         return <HomeScreen navigateTo={navigateTo} notificationCount={notificationCount} listings={myListings} />;
-      case 'events':
-        return <EventsScreen navigateTo={navigateTo} />;
+      // case 'events':
+      //   return <EventsScreen navigateTo={navigateTo} />;
+      case 'circles':
+        return <CirclesScreen navigateTo={navigateTo} />;
       case 'create':
         return <CreateListingScreen navigateTo={navigateTo} onPublish={handleListingPublish} />;
       case 'profile':
@@ -297,8 +327,8 @@ export default function App() {
       case 'edit-profile':
         return <EditProfileScreen 
           navigateTo={navigateTo} 
-          currentUser={currentUser} // ⬅️ 현재 사용자 정보 전달
-          onProfileUpdate={handleProfileUpdate} // ⬅️ 프로필 업데이트 함수 전달
+          currentUser={currentUser} 
+          onProfileUpdate={handleProfileUpdate}
         />;
       case 'change-password':
         return <ChangePasswordScreen navigateTo={navigateTo} />;
@@ -313,7 +343,7 @@ export default function App() {
     }
   };
 
-  const mainScreens = ['home', 'events', 'profile', 'settings'];
+  const mainScreens = ['home', 'circles', 'profile', 'settings'];
   const showBottomNav = mainScreens.includes(currentScreen);
 
   return (

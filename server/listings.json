@@ -1,5 +1,49 @@
 [
   {
+    "id": "1762797897660",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "Ryan socket 1 user 1 test1",
+    "description": "aaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "condition": "like-new",
+    "meetingSpot": "Main Library Lobby",
+    "meetingTime": "11/11/2025 at 12:00 PM",
+    "image": "http://localhost:3001/uploads/1762797897668-Screenshot 2025-02-02 140929.png",
+    "credits": 0,
+    "isBarter": true,
+    "tags": [
+      "Electronics"
+    ],
+    "seller": {
+      "name": "Ryan Mehta",
+      "verified": false,
+      "id": "user_1"
+    }
+  },
+  {
+    "id": "1762797096062",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "Test uploading1(dining hall, 12:00)",
+    "description": "aaaaaaaaaaaaaaaaaaaaaa",
+    "condition": "fair",
+    "meetingSpot": "Dining Hall Commons",
+    "meetingTime": "11/11/2025 at 12:00 PM",
+    "image": "http://localhost:3001/uploads/1762797096073-Port1.jpg.png",
+    "credits": 0,
+    "isBarter": true,
+    "tags": [
+      "Seasonal"
+    ],
+    "seller": {
+      "name": "Ryan Mehta",
+      "verified": false,
+      "id": "user_1"
+    }
+  },
+  {
     "title": "game",
     "description": "aaaaaaaaaaaaaaaaaaa",
     "condition": "like-new",

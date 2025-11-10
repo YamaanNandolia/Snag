@@ -1,4 +1,4 @@
-import { Home, Calendar, Plus, User, Settings } from 'lucide-react';
+import { Home, Users, Plus, User, Settings } from 'lucide-react';
 
 interface BottomNavProps {
   activeScreen: string;
@@ -8,7 +8,7 @@ interface BottomNavProps {
 export default function BottomNav({ activeScreen, navigateTo }: BottomNavProps) {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
-    { id: 'events', label: 'Events', icon: Calendar },
+    { id: 'circles', label: 'Circles', icon: Users },
     { id: 'create', label: 'Create', icon: Plus, isFab: true },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'settings', label: 'Settings', icon: Settings }
