@@ -15,9 +15,10 @@ const MEETING_SPOTS = [
   { id: 4, name: 'Recreation Center Lobby', hours: '5am - 11pm', verified: true },
   { id: 5, name: 'Dining Hall Commons', hours: '7am - 10pm', verified: true }
 ];
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc} from "firebase/firestore";
 import { db } from "../firebaseConfig";
-import { auth } from "../firebaseConfig"; // if you need current user
+import { auth } from "../firebaseConfig";
+import {sendNotification} from "../utils/sendNotifications"; // if you need current user
 
 interface Photo {
   id: number;
@@ -187,13 +188,27 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
                 return;
             }
 
+            //Fetch seller data from Firestore
+            const userRef = doc(db, "users", user.uid);
+            const userSnap = await getDoc(userRef);
+
+
+            let userData = { trustScore: 0, trades: 0 }; // defaults if no data yet
+            if (userSnap.exists()) {
+                const data = userSnap.data();
+                userData = {
+                    trustScore: data.trustScore ?? 0,
+                    trades: data.trades ?? 0,
+                };
+            }
+
             const listingData = {
                 title,
                 description,
                 condition,
                 tags: selectedTags,
                 credits: suggestedCredits,
-                images: photos.map(p => p.url), // store all photos
+                images: photos.map(p => p.url),
                 meetingSpot: MEETING_SPOTS.find(s => s.id === selectedSpot)?.name,
                 meetingTime: selectedRecommendedTime
                     ? recommendedTimes.find(t => t.id === selectedRecommendedTime)?.label
@@ -201,17 +216,29 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
                 seller: {
                     id: user.uid,
                     name: user.displayName || user.email || "Anonymous",
+                    rating: userData.trustScore,
+                    trades: userData.trades,
                 },
                 createdAt: serverTimestamp(),
-                isBarter: false, // or true if you want to toggle that later
+                isBarter: false,
+                status: true,
+
+                time: "Just now",
             };
 
-            // 🔹 Add the listing to Firestore
-            await addDoc(collection(db, "listings"), listingData);
+            const docRef = await addDoc(collection(db, "listings"), listingData);
+            await updateDoc(docRef, { id: docRef.id }); // ✅ store ID in document
 
+            console.log("✅ Created listing with ID:", docRef.id);
+            await sendNotification({
+                userId: user.uid,
+                title: "Your listing is live!",
+                message: `You posted "${title}" successfully.`,
+                type: "listing",
+            });
+            onPublish({ ...listingData, id: docRef.id });
             toast.success("🎉 Listing published successfully!");
             navigateTo("home");
-
         } catch (err) {
             console.error("🔥 Error publishing listing:", err);
             toast.error("Failed to publish listing.");
@@ -245,39 +272,82 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
 
       {/* Single Scroll Form */}
       <div className="max-w-md mx-auto px-4 py-6 space-y-6 pb-32">
-        {/* Section A: Photos */}
-        <div className={`backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/60'} rounded-3xl border p-4`}>
-          <h3 className={`font-semibold mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-[#222]'}`}>
-            <ImageIcon className="w-5 h-5 text-purple-600" />
-            Photos
-          </h3>
-          <div className="grid grid-cols-3 gap-3">
-            {photos.map((photo) => (
-              <div key={photo.id} className="relative aspect-square">
-                <img
-                  src={photo.url}
-                  alt="Product"
-                  className="w-full h-full object-cover rounded-xl"
-                />
-                <button
-                  onClick={() => handleRemovePhoto(photo.id)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg"
-                >
-                  <X className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            ))}
-            {photos.length < 6 && (
-              <button
-                onClick={handleAddPhoto}
-                className="aspect-square border-2 border-dashed border-purple-300 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-purple-500 hover:bg-purple-50/50 transition-colors"
+          {/* Section A: Photos */}
+          <div
+              className={`backdrop-blur-xl ${
+                  darkMode ? "bg-white/10 border-white/20" : "bg-white/60 border-white/60"
+              } rounded-3xl border p-4`}
+          >
+              <h3
+                  className={`font-semibold mb-3 flex items-center gap-2 ${
+                      darkMode ? "text-white" : "text-[#222]"
+                  }`}
               >
-                <Plus className="w-6 h-6 text-purple-600" />
-                <span className="text-xs text-purple-600">Add</span>
-              </button>
-            )}
+                  <ImageIcon className="w-5 h-5 text-purple-600" />
+                  Photos
+              </h3>
+
+              {/* Photo grid */}
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                  {photos.map((photo) => (
+                      <div key={photo.id} className="relative aspect-square">
+                          <img
+                              src={photo.url}
+                              alt="Product"
+                              className="w-full h-full object-cover rounded-xl"
+                          />
+                          <button
+                              onClick={() => handleRemovePhoto(photo.id)}
+                              className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg"
+                          >
+                              <X className="w-4 h-4 text-white" />
+                          </button>
+                      </div>
+                  ))}
+                  {photos.length < 6 && (
+                      <button
+                          onClick={handleAddPhoto}
+                          className="aspect-square border-2 border-dashed border-purple-300 rounded-xl flex flex-col items-center justify-center gap-1 hover:border-purple-500 hover:bg-purple-50/50 transition-colors"
+                      >
+                          <Plus className="w-6 h-6 text-purple-600" />
+                          <span className="text-xs text-purple-600">Random</span>
+                      </button>
+                  )}
+              </div>
+
+              {/* New: URL input for manual image */}
+              {photos.length < 6 && (
+                  <div className="flex items-center gap-2">
+                      <Input
+                          type="text"
+                          placeholder="Enter image URL (e.g. https://...)"
+                          id="imageUrlInput"
+                          className="flex-1"
+                      />
+                      <button
+                          onClick={() => {
+                              const input = document.getElementById(
+                                  "imageUrlInput"
+                              ) as HTMLInputElement;
+                              const url = input.value.trim();
+                              if (!url) {
+                                  toast.error("Please enter a valid image URL");
+                                  return;
+                              }
+                              setPhotos((prev) => [
+                                  ...prev,
+                                  { id: Date.now(), url },
+                              ]);
+                              input.value = "";
+                              toast.success("✅ Image added from URL");
+                          }}
+                          className="px-3 py-2 rounded-xl bg-purple-600 text-white hover:bg-purple-700 transition-colors"
+                      >
+                          Add
+                      </button>
+                  </div>
+              )}
           </div>
-        </div>
 
         {/* Section B: Details */}
         <div className={`backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/60'} rounded-3xl border p-4 space-y-4`}>

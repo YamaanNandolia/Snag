@@ -9,6 +9,12 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import {Badge} from "./ui/badge";
 import {Avatar, AvatarFallback} from "./ui/avatar";
 import { useCredits } from "../contexts/CreditContext";
+import { doc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig";
+import {sendNotification} from "../utils/sendNotifications";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const meetingSpots = [
   { id: 1, name: 'Main Library Lobby', distance: '0.2 mi', hours: '24/7', verified: true },
@@ -32,6 +38,18 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
     { id: 'afternoon', label: '3:00 PM – 5:00 PM' },
     { id: 'evening', label: '5:00 PM – 7:00 PM' }
   ];
+
+    const hasMismatch = () => {
+        const selectedSpotName = meetingSpots.find((s) => s.id === selectedSpot)?.name;
+        const selectedTimeLabel = selectedRecommendedTime
+            ? recommendedTimes.find((t) => t.id === selectedRecommendedTime)?.label
+            : `${customTime}, ${customDate}`;
+
+        const spotMismatch = item.meetingSpot && selectedSpotName && item.meetingSpot !== selectedSpotName;
+        const timeMismatch = item.meetingTime && selectedTimeLabel && item.meetingTime !== selectedTimeLabel;
+
+        return spotMismatch || timeMismatch;
+    };
 
   if (!item) return null;
 
@@ -112,33 +130,112 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
     }
   };
 
-  const handleConfirm = async () => {
-      console.log("Badge:", Badge);
-      console.log("Avatar:", Avatar);
-      console.log("AvatarFallback:", AvatarFallback);
+    const handleConfirm = async () => {
+        if (!selectedSpot) {
+            toast.error('Please select a meeting spot');
+            return;
+        }
+        if (!selectedRecommendedTime && (!customTime || !customDate)) {
+            toast.error('Please select a time or enter custom time/date');
+            return;
+        }
+        if (timeError || dateError) {
+            toast.error('Please fix time/date errors');
+            return;
+        }
 
-    if (!selectedSpot) {
-      toast.error('Please select a meeting spot');
-      return;
-    }
-    if (!selectedRecommendedTime && (!customTime || !customDate)) {
-      toast.error('Please select a time or enter custom time/date');
-      return;
-    }
-    if (timeError || dateError) {
-      toast.error('Please fix time/date errors');
-      return;
-    }
-      try {
-            //currently does not interact with firebase which it should in the future
-          setCredits(credits - item.credits);
+        try {
+            console.log("Starting meeting confirmation...");
 
-          toast.success('Meeting confirmed!');
-          navigateTo('confirmation', item);
-      } catch (err: any) {
-          toast.error('Failed to schedule meeting.');
-      }
-  };
+            const user = auth.currentUser;
+            if (!user) {
+                toast.error("You must be logged in to confirm a meeting.");
+                return;
+            }
+
+            const selectedSpotName = meetingSpots.find((s) => s.id === selectedSpot)?.name;
+            const selectedTimeLabel = selectedRecommendedTime
+                ? recommendedTimes.find((t) => t.id === selectedRecommendedTime)?.label
+                : `${customTime}, ${customDate}`;
+
+            // Compare buyer’s selections vs listing
+            const spotMismatch = item.meetingSpot && selectedSpotName && item.meetingSpot !== selectedSpotName;
+            const timeMismatch = item.meetingTime && selectedTimeLabel && item.meetingTime !== selectedTimeLabel;
+            const mismatch = spotMismatch || timeMismatch;
+
+            // If buyer proposes different spot/time → send approval request instead of completing immediately
+            if (mismatch) {
+                console.log("⚠️ Meeting mismatch detected — sending approval request");
+
+                const listingRef = doc(db, "listings", item.id);
+                await updateDoc(listingRef, {
+                    pendingConfirmation: true,
+                    proposedSpot: selectedSpotName,
+                    proposedTime: selectedTimeLabel,
+                });
+
+                await sendNotification({
+                    userId: item.seller.id,
+                    title: "⚠️ Meeting confirmation needed",
+                    message: `${user.displayName || "A buyer"} proposed a different ${
+                        spotMismatch && timeMismatch
+                            ? "meeting spot and time"
+                            : spotMismatch
+                                ? "meeting spot"
+                                : "meeting time"
+                    } for "${item.title}".`,
+                    type: "meeting_request",
+                    relatedItemId: item.id,
+                    metadata: {
+                        proposedSpot: selectedSpotName,
+                        proposedTime: selectedTimeLabel,
+                        buyerId: user.uid,
+                        buyerName: user.displayName || user.email || "Anonymous",
+                    },
+                });
+
+                toast.warning("Meeting proposal sent to seller for approval!");
+                navigateTo("home");
+                return;
+            }
+
+            // ✅ Normal case: no mismatch
+            setCredits(credits - item.credits);
+            console.log("✅ Updated credits locally");
+
+            console.log("Item before updating:", item);
+            console.log("Listing path:", `listings/${item.id}`);
+            if (!item?.id) throw new Error("Missing listing ID");
+
+            const listingRef = doc(db, "listings", item.id);
+            await updateDoc(listingRef, { status: false });
+            console.log("✅ Updated listing status in Firestore");
+
+            // Send standard notifications
+            await sendNotification({
+                userId: item.seller.id,
+                title: "Your item has been snagged up!",
+                message: `${user.displayName || "A buyer"} picked up your item "${item.title}".`,
+                type: "listing",
+                relatedItemId: item.id,
+            });
+
+            await sendNotification({
+                userId: user.uid,
+                title: "You snagged an item!",
+                message: `You successfully snagged "${item.title}" from ${item.seller?.displayName || "another user"}.`,
+                type: "trade",
+            });
+
+            console.log("✅ Sent notifications");
+
+            toast.success("Meeting confirmed!");
+            navigateTo("confirmation", item);
+        } catch (err) {
+            console.error("🔥 Meeting confirmation failed:", err);
+            toast.error(`Failed to schedule meeting: ${err.message || err}`);
+        }
+    };
 
     const { credits, setCredits } = useCredits();
   return (
@@ -291,15 +388,30 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
             </div>
           </div>
 
-          {/* Overlapping Availability (Placeholder) */}
-          {(selectedRecommendedTime || (customTime && customDate && !timeError && !dateError)) && (
-            <div className="mt-4 p-3 bg-green-50/50 border border-green-200/50 rounded-xl">
-              <p className="text-xs text-green-700 font-medium mb-1">✓ Availability Match</p>
-              <p className="text-xs text-green-600">
-                This time works for both parties based on their schedules
-              </p>
-            </div>
-          )}
+            {/* Availability Feedback */}
+            {(selectedRecommendedTime || (customTime && customDate && !timeError && !dateError)) && (
+                <>
+                    {!hasMismatch() ? (
+                        // ✅ Matching availability (Green box)
+                        <div className="mt-4 p-3 bg-green-50/50 border border-green-200/50 rounded-xl">
+                            <p className="text-xs text-green-700 font-medium mb-1">✓ Availability Match</p>
+                            <p className="text-xs text-green-600">
+                                This time and location match the seller’s original listing.
+                            </p>
+                        </div>
+                    ) : (
+                        /* ⚠️ Mismatch warning (Bright yellow box) */
+                        <div className="mt-4 p-3 bg-yellow-100 border border-yellow-400 rounded-xl shadow-sm">
+                            <p className="text-xs font-semibold text-yellow-800 mb-1 flex items-center gap-1">
+                            ⚠️ Availability Mismatch
+                            </p>
+                            <p className="text-xs text-yellow-700">
+                            You selected a different time or meeting spot than what the seller listed.
+                            </p>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
 
         {/* Confirm Button */}
