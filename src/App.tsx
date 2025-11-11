@@ -40,6 +40,7 @@ import VerifyEmailScreen from './components/VerifyEmailScreen';
 import { CheckCircle, Package, ArrowLeftRight, Calendar } from 'lucide-react';
 import { Toaster } from './components/ui/sonner';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
+import { CreditProvider } from "./contexts/CreditContext";
 
 export interface Notification {
   id: number;
@@ -363,7 +364,9 @@ function AppContent() {
 function AppWrapper() {
   return (
     <DarkModeProvider>
-      <AppContent />
+        <CreditProvider>
+            <AppContent />
+        </CreditProvider>
     </DarkModeProvider>
   );
 }

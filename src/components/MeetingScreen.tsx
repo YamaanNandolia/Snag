@@ -3,7 +3,12 @@ import { ArrowLeft, MapPin, Clock, Shield, CheckCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner@2.0.3';
+import { useEffect} from 'react';
+import axios from 'axios';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import {Badge} from "./ui/badge";
+import {Avatar, AvatarFallback} from "./ui/avatar";
+import { useCredits } from "../contexts/CreditContext";
 
 const meetingSpots = [
   { id: 1, name: 'Main Library Lobby', distance: '0.2 mi', hours: '24/7', verified: true },
@@ -20,6 +25,7 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
   const [customDate, setCustomDate] = useState('');
   const [timeError, setTimeError] = useState('');
   const [dateError, setDateError] = useState('');
+
 
   const recommendedTimes = [
     { id: 'lunch', label: '12:00 PM – 2:00 PM' },
@@ -106,7 +112,11 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
     }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
+      console.log("Badge:", Badge);
+      console.log("Avatar:", Avatar);
+      console.log("AvatarFallback:", AvatarFallback);
+
     if (!selectedSpot) {
       toast.error('Please select a meeting spot');
       return;
@@ -119,10 +129,18 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
       toast.error('Please fix time/date errors');
       return;
     }
+      try {
+            //currently does not interact with firebase which it should in the future
+          setCredits(prev => prev - item.credits);
 
-    navigateTo('confirmation', item);
+          toast.success('Meeting confirmed!');
+          navigateTo('confirmation', item);
+      } catch (err: any) {
+          toast.error('Failed to schedule meeting.');
+      }
   };
 
+    const { credits, setCredits } = useCredits();
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100">
       {/* Header */}

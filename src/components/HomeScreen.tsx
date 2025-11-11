@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import {useEffect, useState} from 'react';
 import { Search, Bell, TrendingUp, Sparkles, Package, BookOpen, Armchair, Coins, ArrowLeftRight, Music, Shirt, Beaker, Laptop, UtensilsCrossed, PartyPopper, Briefcase, Paintbrush, Camera, Grid3x3, List, X } from 'lucide-react';
 import PillToggle from './PillToggle';
 import { Badge } from './ui/badge';
@@ -6,6 +6,26 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import ImageCarousel from './ImageCarousel';
 import BoxLogo from './BoxLogo';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { useCredits } from "../contexts/CreditContext";
+//for something else:
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+
+const ICON_MAP: Record<string, React.ElementType> = {
+    BookOpen,
+    Armchair,
+    Package,
+    Beaker,
+    Music,
+    Shirt,
+    Laptop,
+    Sparkles,
+    UtensilsCrossed,
+    PartyPopper,
+    Briefcase,
+    Paintbrush,
+    Camera,
+};
 
 const allTags = ['Textbooks', 'Furniture', 'Apparel', 'Dorm', 'Lab/Tech', 'Electronics', 'Kitchen', 'Seasonal'];
 
@@ -401,6 +421,9 @@ const eventFilters = [
 ];
 
 export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
+    const [listings, setListings] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
   const { darkMode } = useDarkMode();
   const [mode, setMode] = useState<'credits' | 'trade'>('credits');
   const [searchQuery, setSearchQuery] = useState('');
@@ -432,14 +455,60 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
     localStorage.setItem('viewMode', mode);
   };
 
-  const filteredListings = mockListings.filter(item => {
+    /*useEffect(() => {
+        async function fetchListings() {
+            try {
+                const response = await axios.get('https://yourserver.com/api/listings');
+                setListings(response.data);
+
+            } catch (err: any) {
+                setError('Failed to load listings.');
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchListings();
+    }, []);*/
+
+
+
+    useEffect(() => {
+        async function fetchListings() {
+            try {
+                console.log("Fetching listings...");
+                const snapshot = await getDocs(collection(db, "listings"));
+                console.log("Snapshot:", snapshot);
+                const data = snapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                console.log("Fetched data:", data);
+                setListings(data);
+            } catch (err) {
+                console.error("🔥 Firestore error:", err);
+                setError("Failed to load listings.");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchListings();
+    }, []);
+
+    if (loading) return <div>Loading listings...</div>;
+    if (error) return <div>{error}</div>;
+
+  const filteredListings = listings.filter(item => {
     if (mode === 'trade' && !item.isBarter) return false;
     if (searchQuery && !item.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (selectedTags.length > 0 && !item.tags.some(tag => selectedTags.includes(tag))) return false;
     return true;
   });
 
-  const errorMsg = "no listing found"
+  const errorMsg = "no listing found";
+  //currently just sets credits to a certain amount
+    const { credits, setCredits } = useCredits();
 
   return (
     <div className={`min-h-screen pb-8 ${darkMode ? 'bg-black' : 'bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100'}`}>
@@ -460,7 +529,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
                 className={`backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/40'} rounded-full px-3 py-1.5 border shadow-sm flex items-center gap-2 hover:opacity-80 transition-opacity`}
               >
                 <Coins className="w-4 h-4 text-yellow-500" />
-                <span className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>42</span>
+                <span className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>{credits}</span>
               </button>
               <button
                 onClick={() => navigateTo('notifications')}
@@ -641,8 +710,16 @@ const addTrustData = (item: any) => ({
 
 function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
   const itemWithTrust = addTrustData(item);
-  const IconComponent = item.icon;
+    // Fix: ensure there's always a valid icon component
+    const iconKey = typeof item.icon === "string" ? item.icon : undefined;
+    const IconComponent = ICON_MAP[iconKey || "Package"] || Package;
 
+
+    console.log("Badge:", Badge);
+    console.log("Avatar:", Avatar);
+    console.log("AvatarFallback:", AvatarFallback);
+    console.log("Coins icon:", Coins);
+    console.log("ArrowLeftRight icon:", ArrowLeftRight);
   return (
     <button
       onClick={() => navigateTo('item-detail', itemWithTrust)}
@@ -676,38 +753,40 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
         
         {/* Primary Tags Only */}
         <div className="flex items-center gap-1.5 mb-2">
-          {item.tags.slice(0, 2).map((tag: string) => (
-            <div
-              key={tag}
-              className="backdrop-blur-xl bg-purple-100/60 rounded-full px-2 py-0.5 border border-purple-200/60 flex items-center gap-1"
-            >
-              <IconComponent className="w-3 h-3 text-purple-600" />
-              <span className="text-purple-700 text-[10px] font-medium">{tag}</span>
-            </div>
-          ))}
+            {item.tags.slice(0, 2).map((tag: string) => (
+                <div
+                    key={tag}
+                    className="backdrop-blur-xl bg-purple-100/60 rounded-full px-2 py-0.5 border border-purple-200/60 flex items-center gap-1"
+                >
+                    <IconComponent className="w-3 h-3 text-purple-600" />
+                    <span className="text-purple-700 text-[10px] font-medium">{tag}</span>
+                </div>
+            ))}
         </div>
 
-        {/* Seller with Trust Score - Single Line */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            navigateTo('user-profile', itemWithTrust.seller);
-          }}
-          className="flex items-center gap-1.5 mb-1.5 hover:opacity-80 transition-opacity"
-        >
-          <Avatar className="w-5 h-5">
-            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-500 text-white text-[10px] font-medium">
-              {item.seller.name.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{item.seller.name}</span>
-          {item.seller.verified && (
-            <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-              <span className="text-white text-[8px]">✓</span>
-            </div>
-          )}
-          <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>• {itemWithTrust.seller.trustScore} ⭐ • {itemWithTrust.seller.trades} trades</span>
-        </button>
+          {/* Seller with Trust Score - Single Line */}
+          <div
+              onClick={(e) => {
+                  e.stopPropagation();
+                  navigateTo('user-profile', itemWithTrust.seller);
+              }}
+              className="flex items-center gap-1.5 mb-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+          >
+              <Avatar className="w-5 h-5">
+                  <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-500 text-white text-[10px] font-medium">
+                      {item.seller.name.charAt(0)}
+                  </AvatarFallback>
+              </Avatar>
+              <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{item.seller.name}</span>
+              {item.seller.verified && (
+                  <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <span className="text-white text-[8px]">✓</span>
+                  </div>
+              )}
+              <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>
+    • {itemWithTrust.seller.trustScore} ⭐ • {itemWithTrust.seller.trades} trades
+  </span>
+          </div>
 
         {/* Location & Time - Single Compact Line */}
         <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>{itemWithTrust.location} • {itemWithTrust.postedTime}</p>
