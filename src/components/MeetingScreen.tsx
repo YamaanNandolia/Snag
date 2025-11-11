@@ -130,58 +130,112 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
     }
   };
 
-  const handleConfirm = async () => {
-      console.log("Badge:", Badge);
-      console.log("Avatar:", Avatar);
-      console.log("AvatarFallback:", AvatarFallback);
+    const handleConfirm = async () => {
+        if (!selectedSpot) {
+            toast.error('Please select a meeting spot');
+            return;
+        }
+        if (!selectedRecommendedTime && (!customTime || !customDate)) {
+            toast.error('Please select a time or enter custom time/date');
+            return;
+        }
+        if (timeError || dateError) {
+            toast.error('Please fix time/date errors');
+            return;
+        }
 
-    if (!selectedSpot) {
-      toast.error('Please select a meeting spot');
-      return;
-    }
-    if (!selectedRecommendedTime && (!customTime || !customDate)) {
-      toast.error('Please select a time or enter custom time/date');
-      return;
-    }
-    if (timeError || dateError) {
-      toast.error('Please fix time/date errors');
-      return;
-    }
-      try {
-          console.log("Starting meeting confirmation...");
+        try {
+            console.log("Starting meeting confirmation...");
 
-          setCredits(credits - item.credits);
-          console.log("✅ Updated credits locally");
+            const user = auth.currentUser;
+            if (!user) {
+                toast.error("You must be logged in to confirm a meeting.");
+                return;
+            }
 
-          console.log("Item before updating:", item);
-          console.log("Listing path:", `listings/${item.id}`);
-          if (!item?.id) throw new Error("Missing listing ID");
-          const listingRef = doc(db, "listings", item.id);
-          await updateDoc(listingRef, { status: false });
-          console.log("✅ Updated listing status in Firestore");
+            const selectedSpotName = meetingSpots.find((s) => s.id === selectedSpot)?.name;
+            const selectedTimeLabel = selectedRecommendedTime
+                ? recommendedTimes.find((t) => t.id === selectedRecommendedTime)?.label
+                : `${customTime}, ${customDate}`;
 
-          await sendNotification({
-              userId: item.seller.id,
-              title: "Your item has been snagged up!",
-              message: `${auth.currentUser?.displayName || "A buyer"} picked up your item "${item.title}".`,
-              type: "listing",
-              relatedItemId: item.id,
-          });
-          await sendNotification({
-              userId: auth.currentUser?.uid,
-              title: "You snagged an item!",
-              message: `You successfully snagged "${item.title}" from ${item.seller?.displayName || "another user"}.`,
-              type: "trade",
-          });
-          console.log("✅ Sent notification");
+            // Compare buyer’s selections vs listing
+            const spotMismatch = item.meetingSpot && selectedSpotName && item.meetingSpot !== selectedSpotName;
+            const timeMismatch = item.meetingTime && selectedTimeLabel && item.meetingTime !== selectedTimeLabel;
+            const mismatch = spotMismatch || timeMismatch;
 
-          toast.success("Meeting confirmed!");
-          navigateTo("confirmation", item);
-      } catch (err: any) {
-          console.error("🔥 Meeting confirmation failed:", err);
-          toast.error(`Failed to schedule meeting: ${err.message || err}`);
-      }
-  };
+            // If buyer proposes different spot/time → send approval request instead of completing immediately
+            if (mismatch) {
+                console.log("⚠️ Meeting mismatch detected — sending approval request");
+
+                const listingRef = doc(db, "listings", item.id);
+                await updateDoc(listingRef, {
+                    pendingConfirmation: true,
+                    proposedSpot: selectedSpotName,
+                    proposedTime: selectedTimeLabel,
+                });
+
+                await sendNotification({
+                    userId: item.seller.id,
+                    title: "⚠️ Meeting confirmation needed",
+                    message: `${user.displayName || "A buyer"} proposed a different ${
+                        spotMismatch && timeMismatch
+                            ? "meeting spot and time"
+                            : spotMismatch
+                                ? "meeting spot"
+                                : "meeting time"
+                    } for "${item.title}".`,
+                    type: "meeting_request",
+                    relatedItemId: item.id,
+                    metadata: {
+                        proposedSpot: selectedSpotName,
+                        proposedTime: selectedTimeLabel,
+                        buyerId: user.uid,
+                        buyerName: user.displayName || user.email || "Anonymous",
+                    },
+                });
+
+                toast.warning("Meeting proposal sent to seller for approval!");
+                navigateTo("home");
+                return;
+            }
+
+            // ✅ Normal case: no mismatch
+            setCredits(credits - item.credits);
+            console.log("✅ Updated credits locally");
+
+            console.log("Item before updating:", item);
+            console.log("Listing path:", `listings/${item.id}`);
+            if (!item?.id) throw new Error("Missing listing ID");
+
+            const listingRef = doc(db, "listings", item.id);
+            await updateDoc(listingRef, { status: false });
+            console.log("✅ Updated listing status in Firestore");
+
+            // Send standard notifications
+            await sendNotification({
+                userId: item.seller.id,
+                title: "Your item has been snagged up!",
+                message: `${user.displayName || "A buyer"} picked up your item "${item.title}".`,
+                type: "listing",
+                relatedItemId: item.id,
+            });
+
+            await sendNotification({
+                userId: user.uid,
+                title: "You snagged an item!",
+                message: `You successfully snagged "${item.title}" from ${item.seller?.displayName || "another user"}.`,
+                type: "trade",
+            });
+
+            console.log("✅ Sent notifications");
+
+            toast.success("Meeting confirmed!");
+            navigateTo("confirmation", item);
+        } catch (err) {
+            console.error("🔥 Meeting confirmation failed:", err);
+            toast.error(`Failed to schedule meeting: ${err.message || err}`);
+        }
+    };
 
     const { credits, setCredits } = useCredits();
   return (
