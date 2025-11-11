@@ -785,12 +785,12 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
                   </div>
               )}
               <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>
-    • {itemWithTrust.seller.trustScore} ⭐ • {itemWithTrust.seller.trades} trades
+    • {item.seller.rating} ⭐ • {item.seller.trades} trades
   </span>
           </div>
 
         {/* Location & Time - Single Compact Line */}
-        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>{itemWithTrust.location} • {itemWithTrust.postedTime}</p>
+        <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>{item.meetingSpot} • {item.meetingTime}</p>
       </div>
     </button>
   );
