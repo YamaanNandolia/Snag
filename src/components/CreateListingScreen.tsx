@@ -15,6 +15,9 @@ const MEETING_SPOTS = [
   { id: 4, name: 'Recreation Center Lobby', hours: '5am - 11pm', verified: true },
   { id: 5, name: 'Dining Hall Commons', hours: '7am - 10pm', verified: true }
 ];
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebaseConfig";
+import { auth } from "../firebaseConfig"; // if you need current user
 
 interface Photo {
   id: number;
@@ -144,54 +147,76 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
     }
   };
 
-  const handlePublish = () => {
-    setAttemptedSubmit(true);
+    const handlePublish = async () => {
+        setAttemptedSubmit(true);
 
-    if (photos.length === 0) {
-      toast.error('Please add at least one photo');
-      return;
-    }
-    if (!title || title.length < 3) {
-      setTitleError('Title must be at least 3 characters');
-      return;
-    }
-    if (!description || description.length < 10) {
-      setDescriptionError('Description must be at least 10 characters');
-      return;
-    }
-    if (!condition) {
-      toast.error('Please select item condition');
-      return;
-    }
-    if (!selectedSpot) {
-      setMeetingSpotError('Please select a meeting spot');
-      return;
-    }
-    if (!selectedRecommendedTime && (!customTime || !customDate)) {
-      toast.error('Please select a time or enter custom time/date');
-      return;
-    }
-    if (timeError || dateError) {
-      toast.error('Please fix time/date errors');
-      return;
-    }
+        // 🔹 Frontend validation (keep your existing validation logic)
+        if (photos.length === 0) {
+            toast.error('Please add at least one photo');
+            return;
+        }
+        if (!title || title.length < 3) {
+            setTitleError('Title must be at least 3 characters');
+            return;
+        }
+        if (!description || description.length < 10) {
+            setDescriptionError('Description must be at least 10 characters');
+            return;
+        }
+        if (!condition) {
+            toast.error('Please select item condition');
+            return;
+        }
+        if (!selectedSpot) {
+            setMeetingSpotError('Please select a meeting spot');
+            return;
+        }
+        if (!selectedRecommendedTime && (!customTime || !customDate)) {
+            toast.error('Please select a time or enter custom time/date');
+            return;
+        }
+        if (timeError || dateError) {
+            toast.error('Please fix time/date errors');
+            return;
+        }
 
-    const listingData = {
-      title,
-      description,
-      condition,
-      tags: selectedTags,
-      credits: suggestedCredits,
-      image: photos[0].url,
-      meetingSpot: MEETING_SPOTS.find(s => s.id === selectedSpot)?.name,
-      meetingTime: selectedRecommendedTime 
-        ? recommendedTimes.find(t => t.id === selectedRecommendedTime)?.label
-        : `${customTime}, ${customDate}`
+        try {
+            const user = auth.currentUser;
+            if (!user) {
+                toast.error("You must be logged in to create a listing.");
+                return;
+            }
+
+            const listingData = {
+                title,
+                description,
+                condition,
+                tags: selectedTags,
+                credits: suggestedCredits,
+                images: photos.map(p => p.url), // store all photos
+                meetingSpot: MEETING_SPOTS.find(s => s.id === selectedSpot)?.name,
+                meetingTime: selectedRecommendedTime
+                    ? recommendedTimes.find(t => t.id === selectedRecommendedTime)?.label
+                    : `${customTime}, ${customDate}`,
+                seller: {
+                    id: user.uid,
+                    name: user.displayName || user.email || "Anonymous",
+                },
+                createdAt: serverTimestamp(),
+                isBarter: false, // or true if you want to toggle that later
+            };
+
+            // 🔹 Add the listing to Firestore
+            await addDoc(collection(db, "listings"), listingData);
+
+            toast.success("🎉 Listing published successfully!");
+            navigateTo("home");
+
+        } catch (err) {
+            console.error("🔥 Error publishing listing:", err);
+            toast.error("Failed to publish listing.");
+        }
     };
-
-    onPublish(listingData);
-    navigateTo('home');
-  };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-black' : 'bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100'}`}>

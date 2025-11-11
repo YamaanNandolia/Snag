@@ -3,6 +3,9 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Input } from './ui/input';
 import BoxLogo from './BoxLogo';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { auth, db } from "../firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 export default function SignupScreen({ navigateTo }: any) {
   const { darkMode } = useDarkMode();
@@ -103,18 +106,47 @@ export default function SignupScreen({ navigateTo }: any) {
     }
   };
 
-  const handleNext = () => {
-    const isFullNameValid = validateFullName(fullName);
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
-    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+    const handleNext = async () => {
+        const isFullNameValid = validateFullName(fullName);
+        const isEmailValid = validateEmail(email);
+        const isPasswordValid = validatePassword(password);
+        const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
 
-    if (isFullNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid) {
-      // Store user data for later use
-      const userData = { fullName, email };
-      navigateTo('select-interests', userData);
-    }
-  };
+        if (!isFullNameValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) return;
+
+        try {
+            // Create account in Firebase Authentication
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Update Firebase Auth displayName
+            await updateProfile(user, { displayName: fullName });
+
+            // Create Firestore user profile
+            await setDoc(doc(db, "users", user.uid), {
+                name: fullName,
+                email,
+                credits: 40,         // default starting credits
+                trustScore: 4.5,     // optional
+                trades: 0,
+                createdAt: new Date(),
+            });
+
+            console.log("✅ User created and stored:", user.uid);
+
+            // Navigate forward with user info
+            navigateTo("select-interests", { uid: user.uid, fullName, email });
+        } catch (error: any) {
+            console.error("❌ Signup failed:", error.message);
+            if (error.code === "auth/email-already-in-use") {
+                setEmailError("That email is already registered.");
+            } else if (error.code === "auth/weak-password") {
+                setPasswordError("Password should be at least 6 characters.");
+            } else {
+                setEmailError("Failed to create account. Try again later.");
+            }
+        }
+    };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-black' : 'bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100'} px-6 pt-16 pb-12`}>

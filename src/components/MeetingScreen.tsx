@@ -131,7 +131,7 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
     }
       try {
             //currently does not interact with firebase which it should in the future
-          setCredits(prev => prev - item.credits);
+          setCredits(credits - item.credits);
 
           toast.success('Meeting confirmed!');
           navigateTo('confirmation', item);

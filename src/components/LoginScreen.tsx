@@ -3,6 +3,10 @@ import { Eye, EyeOff } from 'lucide-react';
 import { Input } from './ui/input';
 import BoxLogo from './BoxLogo';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "../firebaseConfig";
+import { doc, getDoc } from "firebase/firestore";
+import { useCredits } from "../contexts/CreditContext";
 
 export default function LoginScreen({ navigateTo }: any) {
   const { darkMode } = useDarkMode();
@@ -55,15 +59,43 @@ export default function LoginScreen({ navigateTo }: any) {
     }
   };
 
-  const handleLogin = () => {
-    const isEmailValid = validateEmail(email);
-    const isPasswordValid = validatePassword(password);
+    const { setCredits } = useCredits(); // optional, if you want to sync user credits
 
-    if (isEmailValid && isPasswordValid) {
-      // Simulate login - in production this would authenticate
-      navigateTo('home');
-    }
-  };
+    const handleLogin = async () => {
+        const isEmailValid = validateEmail(email);
+        const isPasswordValid = validatePassword(password);
+
+        if (!isEmailValid || !isPasswordValid) return;
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            console.log("✅ Logged in user:", user.uid);
+
+            // Optional: pull their credits or profile data from Firestore
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                const data = userDoc.data();
+                console.log("📄 User profile:", data);
+
+                if (data.credits !== undefined) {
+                    setCredits(data.credits); // keep your CreditContext synced
+                }
+            }
+
+            navigateTo("home");
+        } catch (err: any) {
+            console.error("❌ Login failed:", err.message);
+            if (err.code === "auth/invalid-credential" || err.code === "auth/wrong-password") {
+                setPasswordError("Incorrect email or password.");
+            } else if (err.code === "auth/user-not-found") {
+                setEmailError("No account found with this email.");
+            } else {
+                setPasswordError("Login failed. Try again later.");
+            }
+        }
+    };
 
   const handleContinueAsGuest = () => {
     navigateTo('home');
