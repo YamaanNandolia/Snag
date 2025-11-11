@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 import HomeScreen from './components/HomeScreen';
 // import EventsScreen from './components/EventsScreen';
 import CirclesScreen from './components/CirclesScreen';
+import AuthScreen from './components/AuthScreen';
 import CreateListingScreen from './components/CreateListingScreen';
 import ProfileScreen from './components/ProfileScreen';
 import SettingsScreen from './components/SettingsScreen';
@@ -49,8 +50,8 @@ export default function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [latestListing, setLatestListing] = useState<any>(null);
   const [myListings, setMyListings] = useState<any[]>([]); 
-  // const [currentUser, setCurrentUser] = useState({ id: 'user_1', name: 'Ryan Mehta' });
-  const [currentUser, setCurrentUser] = useState({ id: 'user_2', name: 'Mahel' });
+  // const [currentUser, setCurrentUser] = useState({ id: 'user_1', name: 'Ryan Mehta', followedCircles: [] });
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [confirmationModal, setConfirmationModal] = useState<{
     isOpen: boolean;
     icon?: React.ReactNode;
@@ -69,24 +70,7 @@ export default function App() {
     isOpen: false,
     listing: null
   });
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: 1,
-      type: 'meeting',
-      title: 'Meeting confirmed',
-      message: 'Your meeting for Desk Chair at Student Union Entrance',
-      time: '1 hour ago',
-      unread: true
-    },
-    {
-      id: 2,
-      type: 'barter',
-      title: 'New barter offer received',
-      message: 'Emma L. wants to trade for your Vintage Denim Jacket',
-      time: '3 hours ago',
-      unread: true
-    }
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationCount, setNotificationCount] = useState(2);
   const socketRef = useRef<Socket | null>(null);
 
@@ -94,11 +78,20 @@ export default function App() {
     if (showSplash) {
       const timer = setTimeout(() => {
         setShowSplash(false);
-        setCurrentScreen('home');
+        // setCurrentScreen('home'); // ⬅️ 로그인이 필요하므로 'home'으로 바로 보내지 않음
       }, 2500);
-      return () => clearTimeout(timer); 
+      return () => clearTimeout(timer);
     }
-    console.log('tset: app is starting');
+
+    // --- !showSplash 일 때만 실행 (앱 로드 시 1번) ---
+
+    // ⬇️ (중요!) 로그인을 안 했으면(currentUser가 null이면) 아무것도 로드하지 않음
+    if (!currentUser) {
+      return; 
+    }
+
+    // B. 물품 목록 가져오기 (로그인한 사용자만 실행)
+    console.log('앱 시작: 서버에서 물품 리스트를 가져옵니다...');
     fetch('http://localhost:3001/api/listings') 
       .then(res => res.json())
       .then((data: any[]) => {
@@ -109,38 +102,68 @@ export default function App() {
         console.error('error in bring list from server', err);
       });
 
-    if (!socketRef.current) {
-      socketRef.current = io('http://localhost:3001');
-      
-      socketRef.current.emit('register', { userId: currentUser.id });
-
-      socketRef.current.on('newNotification', (data) => {
-        console.log('Socket info accept:', data);
-        addNotification(data.type, data.title, data.message);
-      });
-
-      socketRef.current.on('newListing', (newListingData) => {
-        console.log('Socket: new listed item', newListingData.title);
+    // C. (필수!) 유저 정보 가져오기 (이 로그가 안 찍힘!)
+    //    'handleLoginSuccess'가 이 정보를 이미 가져왔어야 하지만,
+    //    안전장치로 여기서 한 번 더 호출합니다.
+    console.log(`앱 시작: ${currentUser.id}의 유저 정보를 가져옵니다...`);
+    fetch(`http://localhost:3001/api/users/${currentUser.id}`)
+      .then(res => res.json())
+      .then((userData) => {
+        console.log('유저 정보 가져오기 성공:', userData.name, userData.followedCircles);
+        setCurrentUser(userData); 
         
-        setMyListings(prevListings => {
-          if (prevListings.find(item => item.id === newListingData.id)) {
-            return prevListings;
-          }
-          return [newListingData, ...prevListings];
-        });
+        // ⬇️ ⬇️ ⬇️ (알림 로드 코드) ⬇️ ⬇️ ⬇️
+        if (userData.notifications) {
+          setNotifications(userData.notifications);
+          setNotificationCount(userData.notifications.filter((n: Notification) => n.unread).length);
+        }
+        // ⬆️ ⬆️ ⬆️ (알림 로드 코드) ⬆️ ⬆️ ⬆️
+
+      })
+      .catch(err => {
+        console.error('유저 정보를 가져오는 데 실패했습니다:', err);
       });
+      
+  }, [showSplash, currentUser?.id]); // ⬅️ (수정!) 의존성 배열을 'currentUser.id' (안전하게)로 변경
+
+
+  // 2. (필수!) 소켓 연결 전용 훅
+  useEffect(() => {
+    // D. (중요!) 로그인을 안 했거나 스플래시 중이면 소켓을 연결하지 않음
+    if (showSplash || !currentUser) {
+      return; 
     }
+
+    // --- 로그인한 사용자만 이 아래 코드가 실행됨 ---
     
+    console.log(`Socket: ${currentUser.name} (${currentUser.id}) 님으로 연결 시도...`);
+    socketRef.current = io('http://localhost:3001');
+    socketRef.current.emit('register', { userId: currentUser.id }); // ⬅️ 이 코드가 실행되어야 함!
+
+    socketRef.current.on('newNotification', (data) => {
+      console.log('Socket info accept:', data);
+      addNotification(data.type, data.title, data.message);
+    });
+
+    socketRef.current.on('newListing', (newListingData) => {
+      console.log('Socket: new listed item', newListingData.title);
+      setMyListings(prevListings => {
+        if (prevListings.find(item => item.id === newListingData.id)) {
+          return prevListings;
+        }
+        return [newListingData, ...prevListings];
+      });
+    });
+
     return () => {
       if (socketRef.current) {
+        console.log(`Socket: ${currentUser.id} 님 연결 해제...`);
         socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
-
-  }, [showSplash, currentUser.id]); 
-
-
+    
+  }, [showSplash, currentUser?.id]);
 
   const addNotification = (type: string, title: string, message: string, listingData?: any) => {
 
@@ -214,6 +237,14 @@ export default function App() {
     }
   };
 
+  const handleLoginSuccess = (user: any) => {
+    console.log(`로그인 성공: ${user.name} (ID: ${user.id})`);
+    // 1. App.tsx의 메인 상태를 로그인한 유저 정보로 설정
+    setCurrentUser(user);
+
+    // 2. (선택사항) 로그인 후 바로 홈 화면으로 이동
+    setCurrentScreen('home');
+  };
 
 
   const handleBarterConfirm = () => {
@@ -266,15 +297,45 @@ export default function App() {
     if (data) setSelectedItem(data);
   };
 
+  const handleToggleCircleFollow = (circleId: number) => {
+    setCurrentUser(prevUser => {
+      const currentFollows = prevUser.followedCircles || [];
+      const index = currentFollows.indexOf(circleId);
+      let newFollows = [];
+      if (index > -1) {
+        newFollows = currentFollows.filter(id => id !== circleId);
+      } else {
+        newFollows = [...currentFollows, circleId];
+      }
+      return { ...prevUser, followedCircles: newFollows };
+    });
+
+    fetch('http://localhost:3001/api/users/follows/toggle', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: currentUser.id,
+        circleId: circleId
+      })
+    })
+    .then(res => res.json())
+    .then(updatedUser => {
+      console.log('saved success ! to server', updatedUser.followedCircles);
+      setCurrentUser(updatedUser); 
+    })
+    .catch(err => console.error('fail to update follow list:', err));
+  };
+
   const setMeetingSpot = (spot: string) => {
 
     setSelectedMeetingSpot(spot);
   };
 
-  if (showSplash) {
-
-    return <SplashScreen />;
-  }
+  // if (showSplash) {
+  //   return <SplashScreen />;
+  // }
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -283,7 +344,12 @@ export default function App() {
       // case 'events':
       //   return <EventsScreen navigateTo={navigateTo} />;
       case 'circles':
-        return <CirclesScreen navigateTo={navigateTo} />;
+        return <CirclesScreen 
+          navigateTo={navigateTo} 
+          followedCircleIds={currentUser.followedCircles || []}
+          onToggleFollow={handleToggleCircleFollow} 
+        />;
+        
       case 'create':
         return <CreateListingScreen navigateTo={navigateTo} onPublish={handleListingPublish} />;
       case 'profile':
@@ -346,6 +412,16 @@ export default function App() {
   const mainScreens = ['home', 'circles', 'profile', 'settings'];
   const showBottomNav = mainScreens.includes(currentScreen);
 
+  if (showSplash) {
+    return <SplashScreen />;
+  }
+
+  // (2) 로그인 화면 체크 (새로 추가된 부분)
+  if (!currentUser) {
+    return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  // (3) 메인 앱 화면 (사용자님이 붙여넣으신 기존의 return문)
   return (
     <div className="relative w-full min-h-screen bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100">
       {/* Main Content */}

@@ -43,9 +43,9 @@ export default function CreateListingScreen({ navigateTo, onPublish }: any) {
   const [useProposedTime, setUseProposedTime] = useState(false);
 
   const recommendedTimes = [
-    { id: 'lunch', label: '12:00 PM – 2:00 PM', value: '12:00 PM' },
-    { id: 'afternoon', label: '3:00 PM – 5:00 PM', value: '3:00 PM' },
-    { id: 'evening', label: '5:00 PM – 7:00 PM', value: '5:00 PM' }
+    { id: 'lunch', label: '12:00 PM – 2:00 PM', value: '12:00' },
+    { id: 'afternoon', label: '3:00 PM – 5:00 PM', value: '15:00' },
+    { id: 'evening', label: '5:00 PM – 7:00 PM', value: '17:00' }
   ];
 
 
@@ -65,7 +65,8 @@ export default function CreateListingScreen({ navigateTo, onPublish }: any) {
     const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
     const day = String(tomorrow.getDate()).padStart(2, '0');
     const year = tomorrow.getFullYear();
-    setMeetingDate(`${month}/${day}/${year}`);
+    // setMeetingDate(`${month}/${day}/${year}`);
+    setMeetingDate(`${year}-${month}-${day}`);
     setMeetingTime(timeSlot.value);
   };
 

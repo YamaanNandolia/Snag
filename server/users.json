@@ -1,0 +1,49 @@
+{
+  "user_1": {
+    "id": "user_1",
+    "name": "Joon1",
+    "email": "mahelp03@gmail.com",
+    "password": "$2b$10$a4JLY6tc2SFuUja4PCFw4eG0lzFHJWv2u2SoN1pUGqJli/s0M4mua",
+    "followedCircles": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "notifications": [
+      {
+        "id": 1762841037499,
+        "type": "snag",
+        "title": "Your item was snagged!",
+        "message": "kyle1 wants to snag your \"game333333333333\"!",
+        "time": "Just now",
+        "unread": true
+      },
+      {
+        "id": 1762839963745,
+        "type": "snag",
+        "title": "Your item was snagged!",
+        "message": "kyle1 wants to snag your \"test_joon1\"!",
+        "time": "Just now",
+        "unread": true
+      }
+    ]
+  },
+  "user_2": {
+    "id": "user_2",
+    "name": "kyle1",
+    "email": "jma50@uic.edu",
+    "password": "$2b$10$WvjUBs0RvPjz/W0/78DY1unGVPDR0RR8YFHOQbG.ou8HyvDXWtAfi",
+    "followedCircles": [],
+    "notifications": [
+      {
+        "id": 1762840102601,
+        "type": "snag",
+        "title": "Your item was snagged!",
+        "message": "Joon1 wants to snag your \"cat newnew_\"!",
+        "time": "Just now",
+        "unread": true
+      }
+    ]
+  }
+}

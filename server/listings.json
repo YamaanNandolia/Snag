@@ -1,5 +1,179 @@
 [
   {
+    "id": "1762841021676",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "game333333333333",
+    "description": "3333333333333",
+    "condition": "fair",
+    "meetingSpot": "Campus Coffee Shop",
+    "meetingTime": "2025-11-12 at 12:00",
+    "image": "http://localhost:3001/uploads/1762841021679-test4.jpg",
+    "credits": 3333,
+    "isBarter": false,
+    "tags": [],
+    "seller": {
+      "name": "Joon1",
+      "verified": false,
+      "id": "user_1"
+    }
+  },
+  {
+    "id": "1762840085141",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "cat newnew_",
+    "description": "ddddddddddddddddd",
+    "condition": "good",
+    "meetingSpot": "Campus Coffee Shop",
+    "meetingTime": "2025-11-11 at 12:00",
+    "image": "http://localhost:3001/uploads/1762840085148-test1.jpg",
+    "credits": 333,
+    "isBarter": false,
+    "tags": [
+      "Furniture"
+    ],
+    "seller": {
+      "name": "kyle1",
+      "verified": false,
+      "id": "user_2"
+    }
+  },
+  {
+    "id": "1762838915753",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "test_joon1",
+    "description": "1111111111111",
+    "condition": "like-new",
+    "meetingSpot": "Recreation Center Lobby",
+    "meetingTime": "2025-11-11 at 15:00",
+    "image": "http://localhost:3001/uploads/1762838915760-Port1.jpg.png",
+    "credits": 333,
+    "isBarter": false,
+    "tags": [
+      "Furniture"
+    ],
+    "seller": {
+      "name": "Joon1",
+      "verified": false,
+      "id": "user_1"
+    }
+  },
+  {
+    "id": "1762837998156",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "dddddddddddd for new id kyle1",
+    "description": "wwwwwwwwwwwwwwwwwww",
+    "condition": "good",
+    "meetingSpot": "Recreation Center Lobby",
+    "meetingTime": "2025-11-11 at 12:00",
+    "image": "http://localhost:3001/uploads/1762837998162-test1.jpg",
+    "credits": 3333,
+    "isBarter": false,
+    "tags": [
+      "Seasonal"
+    ],
+    "seller": {
+      "name": "kyle1",
+      "verified": false,
+      "id": "user_2"
+    }
+  },
+  {
+    "id": "1762831748148",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "dddddddddddddddddddddddddddddd",
+    "description": "dddddddddddddddddd",
+    "condition": "poor",
+    "meetingSpot": "Student Union Entrance",
+    "meetingTime": "2025-11-11 at 12:00",
+    "image": "http://localhost:3001/uploads/1762831748156-ì¤í¬ë¦°ì· 2025-01-30 144236.png",
+    "credits": 2,
+    "isBarter": false,
+    "tags": [
+      "Furniture"
+    ],
+    "seller": {
+      "name": "Kyle",
+      "verified": false,
+      "id": "user_4"
+    }
+  },
+  {
+    "id": "1762827774899",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "tiger",
+    "description": "dddddddddddddddddddddddddd",
+    "condition": "poor",
+    "meetingSpot": "Main Library Lobby",
+    "meetingTime": "11/11/2025 at 12:00 PM",
+    "image": "http://localhost:3001/uploads/1762827774902-test2.jpg",
+    "credits": 220,
+    "isBarter": false,
+    "tags": [
+      "Seasonal"
+    ],
+    "seller": {
+      "name": "Joon",
+      "verified": false,
+      "id": "user_3"
+    }
+  },
+  {
+    "id": "1762827068532",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "eeeeeeeeeeeeeeeeeeeee",
+    "description": "eeeeeeeeeeeeeeeeeeeeeeeeee",
+    "condition": "good",
+    "meetingSpot": "Dining Hall Commons",
+    "meetingTime": "11/11/2025 at 12:00 PM",
+    "image": "http://localhost:3001/uploads/1762827068539-test1.jpg",
+    "credits": 11111,
+    "isBarter": false,
+    "tags": [
+      "Furniture"
+    ],
+    "seller": {
+      "name": "Kyle",
+      "verified": false,
+      "id": "user_4"
+    }
+  },
+  {
+    "id": "1762826095538",
+    "status": "active",
+    "views": 0,
+    "postedTime": "Just now",
+    "title": "testrealreal",
+    "description": "eeeeeeeeeeeeeeeeee",
+    "condition": "like-new",
+    "meetingSpot": "Dining Hall Commons",
+    "meetingTime": "11/11/2025 at 3:00 PM",
+    "image": "http://localhost:3001/uploads/1762826095557-ì¤í¬ë¦°ì· 2024-12-01 213420.png",
+    "credits": 33333,
+    "isBarter": false,
+    "tags": [
+      "Furniture"
+    ],
+    "seller": {
+      "name": "Joon",
+      "verified": false,
+      "id": "user_3"
+    }
+  },
+  {
     "id": "1762797897660",
     "status": "active",
     "views": 0,
