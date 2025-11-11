@@ -709,6 +709,7 @@ const addTrustData = (item: any) => ({
 });
 
 function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
+    if (!item.status) return null;
   const itemWithTrust = addTrustData(item);
     // Fix: ensure there's always a valid icon component
     const iconKey = typeof item.icon === "string" ? item.icon : undefined;
@@ -796,6 +797,7 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
 }
 
 function GridMarketplaceCard({ item, navigateTo, darkMode }: any) {
+    if (!item.status) return null;
   const itemWithTrust = addTrustData(item);
 
   return (

@@ -9,6 +9,8 @@ import { useDarkMode } from '../contexts/DarkModeContext';
 import {Badge} from "./ui/badge";
 import {Avatar, AvatarFallback} from "./ui/avatar";
 import { useCredits } from "../contexts/CreditContext";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "../firebaseConfig";
 
 const meetingSpots = [
   { id: 1, name: 'Main Library Lobby', distance: '0.2 mi', hours: '24/7', verified: true },
@@ -130,9 +132,11 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
       return;
     }
       try {
-            //currently does not interact with firebase which it should in the future
           setCredits(credits - item.credits);
-
+          const listingRef = doc(db, "listings", item.id);
+          await updateDoc(listingRef, {
+              status: false,
+          });
           toast.success('Meeting confirmed!');
           navigateTo('confirmation', item);
       } catch (err: any) {

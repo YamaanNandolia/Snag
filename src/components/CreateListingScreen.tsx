@@ -15,7 +15,7 @@ const MEETING_SPOTS = [
   { id: 4, name: 'Recreation Center Lobby', hours: '5am - 11pm', verified: true },
   { id: 5, name: 'Dining Hall Commons', hours: '7am - 10pm', verified: true }
 ];
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import {addDoc, collection, serverTimestamp, updateDoc} from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { auth } from "../firebaseConfig"; // if you need current user
 
@@ -193,7 +193,7 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
                 condition,
                 tags: selectedTags,
                 credits: suggestedCredits,
-                images: photos.map(p => p.url), // store all photos
+                images: photos.map(p => p.url),
                 meetingSpot: MEETING_SPOTS.find(s => s.id === selectedSpot)?.name,
                 meetingTime: selectedRecommendedTime
                     ? recommendedTimes.find(t => t.id === selectedRecommendedTime)?.label
@@ -203,15 +203,18 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
                     name: user.displayName || user.email || "Anonymous",
                 },
                 createdAt: serverTimestamp(),
-                isBarter: false, // or true if you want to toggle that later
+                isBarter: false,
+                status: true,
             };
 
-            // 🔹 Add the listing to Firestore
-            await addDoc(collection(db, "listings"), listingData);
+            const docRef = await addDoc(collection(db, "listings"), listingData);
+            await updateDoc(docRef, { id: docRef.id }); // ✅ store ID in document
 
+            console.log("✅ Created listing with ID:", docRef.id);
+
+            onPublish({ ...listingData, id: docRef.id });
             toast.success("🎉 Listing published successfully!");
             navigateTo("home");
-
         } catch (err) {
             console.error("🔥 Error publishing listing:", err);
             toast.error("Failed to publish listing.");
