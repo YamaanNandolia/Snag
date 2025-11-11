@@ -53,7 +53,7 @@
             "vite": "6.3.5"
       },
       "scripts": {
-            "deploy": "gh-pages -d dist",
+            "dev": "vite",
             "build": "vite build"
       }
 }
