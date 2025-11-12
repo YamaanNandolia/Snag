@@ -50,6 +50,7 @@ export default function NotificationsScreen({ navigateTo }: any) {
                 type: "trade",
             });
 
+
             // ✅ Delete notification after accepting
             const notifRef = doc(db, "users", auth.currentUser?.uid || "", "notifications", notification.id);
             await deleteDoc(notifRef);
