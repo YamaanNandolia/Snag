@@ -8,6 +8,7 @@ interface ConfirmationScreenProps {
 }
 
 export default function ConfirmationScreen({ item, meetingSpot, navigateTo }: ConfirmationScreenProps) {
+    console.log("item:",item);
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6 animate-in fade-in duration-500">
@@ -44,17 +45,17 @@ export default function ConfirmationScreen({ item, meetingSpot, navigateTo }: Co
             <div className="w-20 h-20 rounded-2xl overflow-hidden bg-purple-100/50 flex-shrink-0">
               {item?.image && (
                 <ImageWithFallback
-                  src={item.image}
+                  src={item.images?.[0]}
                   alt={item.title}
                   className="w-full h-full object-cover"
                 />
               )}
             </div>
             <div className="flex-1">
-              <h3 className="text-[#222] font-semibold mb-1">{item?.title || 'Item'}</h3>
+              <h3 className="text-[#222] font-semibold mb-1">{item?.title}</h3>
               <div className="flex items-center gap-1.5">
                 <Coins className="w-4 h-4 text-yellow-500" />
-                <span className="text-[#555] text-sm font-medium">{item?.credits || 0} Credits</span>
+                <span className="text-[#555] text-sm font-medium">{item?.credits} Credits</span>
               </div>
             </div>
           </div>
@@ -67,7 +68,7 @@ export default function ConfirmationScreen({ item, meetingSpot, navigateTo }: Co
               </div>
               <div>
                 <p className="text-[#888] text-sm font-light">Meeting Location</p>
-                <p className="text-[#222] font-medium">{meetingSpot || 'Main Library Lobby'}</p>
+                <p className="text-[#222] font-medium">{item.meetingSpot}</p>
               </div>
             </div>
 
@@ -77,7 +78,7 @@ export default function ConfirmationScreen({ item, meetingSpot, navigateTo }: Co
               </div>
               <div>
                 <p className="text-[#888] text-sm font-light">Scheduled For</p>
-                <p className="text-[#222] font-medium">Today at 2:00 PM</p>
+                <p className="text-[#222] font-medium">{item.meetingTime}</p>
               </div>
             </div>
           </div>

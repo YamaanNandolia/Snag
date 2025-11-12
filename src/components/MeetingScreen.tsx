@@ -15,6 +15,7 @@ import {sendNotification} from "../utils/sendNotifications";
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { increment } from "firebase/firestore";
 
 const meetingSpots = [
   { id: 1, name: 'Main Library Lobby', distance: '0.2 mi', hours: '24/7', verified: true },
@@ -210,6 +211,14 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
             const listingRef = doc(db, "listings", item.id);
             await updateDoc(listingRef, { status: false });
             console.log("✅ Updated listing status in Firestore");
+
+            if (item?.seller?.id) {
+                const sellerRef = doc(db, "users", item.seller.id);
+                await updateDoc(sellerRef, { trades: increment(1) });
+                console.log(`✅ Incremented trade count for seller ${item.seller.id}`);
+            } else {
+                console.warn("⚠️ No seller.id found; skipping trade increment");
+            }
 
             // Send standard notifications
             await sendNotification({

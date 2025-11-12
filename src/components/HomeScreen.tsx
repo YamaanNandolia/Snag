@@ -710,7 +710,6 @@ const addTrustData = (item: any) => ({
 
 function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
     if (!item.status) return null;
-  const itemWithTrust = addTrustData(item);
     // Fix: ensure there's always a valid icon component
     const iconKey = typeof item.icon === "string" ? item.icon : undefined;
     const IconComponent = ICON_MAP[iconKey || "Package"] || Package;
@@ -723,7 +722,7 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
     console.log("ArrowLeftRight icon:", ArrowLeftRight);
   return (
     <button
-      onClick={() => navigateTo('item-detail', itemWithTrust)}
+      onClick={() => navigateTo('item-detail', item)}
       className={`w-full backdrop-blur-2xl ${darkMode ? 'bg-white/10 border-white/20 hover:bg-white/15' : 'bg-white/70 border-white/60 hover:shadow-[0_8px_24px_rgba(139,92,246,0.15)]'} rounded-2xl border shadow-[0_4px_16px_rgba(139,92,246,0.08)] overflow-hidden transition-all active:scale-[0.98]`}
     >
       {/* Image - Reduced Height */}
@@ -769,7 +768,7 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
           <div
               onClick={(e) => {
                   e.stopPropagation();
-                  navigateTo('user-profile', itemWithTrust.seller);
+                  navigateTo('user-profile', item.seller);
               }}
               className="flex items-center gap-1.5 mb-1.5 hover:opacity-80 transition-opacity cursor-pointer"
           >
@@ -798,11 +797,10 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
 
 function GridMarketplaceCard({ item, navigateTo, darkMode }: any) {
     if (!item.status) return null;
-  const itemWithTrust = addTrustData(item);
 
   return (
     <button
-      onClick={() => navigateTo('item-detail', itemWithTrust)}
+      onClick={() => navigateTo('item-detail', item)}
       className={`backdrop-blur-2xl ${darkMode ? 'bg-white/10 border-white/20 hover:bg-white/15' : 'bg-white/70 border-white/60 hover:shadow-[0_8px_24px_rgba(139,92,246,0.15)]'} rounded-2xl border shadow-[0_4px_16px_rgba(139,92,246,0.08)] overflow-hidden transition-all active:scale-[0.98]`}
     >
       {/* Image - Square Aspect */}
@@ -830,8 +828,8 @@ function GridMarketplaceCard({ item, navigateTo, darkMode }: any) {
       <div className="p-2.5">
         <h3 className={`font-semibold text-xs mb-1 line-clamp-2 ${darkMode ? 'text-white' : 'text-[#222]'}`}>{item.title}</h3>
         <div className="flex items-center gap-1">
-          <span className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-[#999]'}`}>{itemWithTrust.seller.trustScore} ⭐</span>
-          <span className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-[#999]'}`}>• {itemWithTrust.seller.trades}</span>
+          <span className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-[#999]'}`}>{item.seller.rating} ⭐</span>
+          <span className={`text-[10px] ${darkMode ? 'text-gray-400' : 'text-[#999]'}`}>• {item.seller.trades}</span>
         </div>
       </div>
     </button>

@@ -3,15 +3,38 @@ import { Avatar, AvatarFallback } from './ui/avatar';
 import { Badge } from './ui/badge';
 import ImageCarousel from './ImageCarousel';
 import { useDarkMode } from '../contexts/DarkModeContext';
+import {doc, getDoc} from "firebase/firestore";
+import {db} from "../firebaseConfig";
+import {useEffect, useState} from "react";
 
 export default function ItemDetailScreen({ item, navigateTo }: any) {
-  const { darkMode } = useDarkMode();
-  if (!item) return null;
+    const { darkMode } = useDarkMode();
+    const [listing, setListing] = useState<any>(item); // start with passed item
+    const [loading, setLoading] = useState(false);
+    useEffect(() => {
+        // if the passed item came with an ID, fetch the full Firestore version
+        if (!item?.id) return;
 
+        async function fetchItem() {
+            setLoading(true);
+            try {
+                const ref = doc(db, "listings", item.id);
+                const snap = await getDoc(ref);
+                if (snap.exists()) {
+                    setListing({ id: snap.id, ...snap.data() });
+                }
+            } catch (err) {
+                console.error("Failed to fetch item:", err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchItem();
+    }, [item]);
   const IconComponent = item.icon;
-  
+    console.log("item: ", item);
   // Ensure seller has default values
-  const seller = item.seller || { name: 'Unknown', verified: false, trustScore: '4.8', trades: 24 };
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-black' : 'bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100'}`}>
@@ -33,7 +56,7 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
         {/* Image Carousel */}
         <div className="relative">
           <ImageCarousel 
-            images={item.images || [item.image]} 
+            images={item.images || [item.image]}
             alt={item.title}
             aspectRatio="aspect-square"
           />
@@ -63,9 +86,9 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
             <p className={`mb-4 ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{item.description}</p>
 
             {/* Tags */}
-            {item.tags && item.tags.length > 0 && (
+            {listing.tags && listing.tags.length > 0 && (
               <div className="flex items-center gap-2 mb-6">
-                {item.tags.map((tag: string) => (
+                {listing.tags.map((tag: string) => (
                   <div
                     key={tag}
                     className="backdrop-blur-xl bg-purple-100/60 rounded-full px-3 py-1.5 border border-purple-200/60 flex items-center gap-1.5"
@@ -80,18 +103,18 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
             {/* Seller Info with Trust Indicators */}
             <div className={`flex items-center justify-between pt-4 border-t ${darkMode ? 'border-white/10' : 'border-purple-200/40'}`}>
               <button
-                onClick={() => navigateTo('user-profile', seller)}
+                onClick={() => navigateTo('user-profile', item.seller)}
                 className="flex items-center gap-3 hover:opacity-80 transition-opacity"
               >
                 <Avatar className="w-10 h-10">
                   <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-500 text-white font-medium">
-                    {seller.name.charAt(0)}
+                    {item.seller.name.charAt(0) || "?"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>{seller.name}</span>
-                    {seller.verified && (
+                    <span className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>{item.seller.name}</span>
+                    {item.seller.verified && (
                       <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
                         <span className="text-white text-xs">✓</span>
                       </div>
@@ -101,10 +124,10 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
                       <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                      <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{seller.trustScore || '4.8'}</span>
+                      <span className={`text-xs font-medium ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{item.seller.rating}</span>
                     </div>
                     <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-[#999]'}`}>•</span>
-                    <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{seller.trades || '24'} trades</span>
+                    <span className={`text-xs ${darkMode ? 'text-gray-300' : 'text-[#555]'}`}>{item.seller.trades} trades</span>
                   </div>
                 </div>
               </button>
@@ -119,7 +142,7 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
               </div>
               <div>
                 <p className={`text-sm font-light ${darkMode ? 'text-gray-400' : 'text-[#888]'}`}>Pickup Location</p>
-                <p className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>Main Campus Library Lobby</p>
+                <p className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>{item.meetingSpot}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -128,7 +151,7 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
               </div>
               <div>
                 <p className={`text-sm font-light ${darkMode ? 'text-gray-400' : 'text-[#888]'}`}>Posted</p>
-                <p className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>2 days ago</p>
+                <p className={`font-medium ${darkMode ? 'text-white' : 'text-[#222]'}`}>{item.time}</p>
               </div>
             </div>
           </div>
