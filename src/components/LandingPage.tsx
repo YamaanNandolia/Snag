@@ -82,7 +82,7 @@ export default function LandingPage({ navigateTo }: LandingPageProps) {
                     <div className="landing-nav-right">
                         <Button
                             onClick={handleGetStarted}
-                            className="landing-cta-button"
+                            className="landing-hero-primary-btn"
                         >
                             Get Started
                         </Button>
@@ -171,7 +171,7 @@ export default function LandingPage({ navigateTo }: LandingPageProps) {
             <section id="about" className="landing-section landing-about">
                 <div className="landing-section-inner landing-about-inner">
                     <div className="landing-section-heading">
-                        <h2 className="landing-heading-xl">
+                        <h2 className="landing-heading-xl center">
                             Built by Students at the University of Illinois Chicago
                         </h2>
                     </div>
@@ -256,10 +256,10 @@ export default function LandingPage({ navigateTo }: LandingPageProps) {
             <section id="circles" className="landing-section landing-circles">
                 <div className="landing-section-inner">
                     <div className="landing-section-heading center">
-                        <h2 className="landing-heading-xl">
+                        <h2 className="landing-heading-xl center">
                             Snag Circles — Trade in Groups That Matter
                         </h2>
-                        <p className="landing-section-subtitle">
+                        <p className="landing-section-subtitle center">
                             Join public circles or create your own to trade within clubs, dorm
                             floors, majors, or interest groups. Keep exchanges relevant, fast,
                             and trusted.
@@ -283,7 +283,7 @@ export default function LandingPage({ navigateTo }: LandingPageProps) {
                     <div className="landing-circles-cta">
                         <Button
                             onClick={handleGetStarted}
-                            className="landing-circles-button"
+                            className="landing-hero-primary-btn"
                         >
                             Explore Circles
                         </Button>
