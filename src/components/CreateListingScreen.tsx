@@ -15,7 +15,7 @@ const MEETING_SPOTS = [
   { id: 4, name: 'Recreation Center Lobby', hours: '5am - 11pm', verified: true },
   { id: 5, name: 'Dining Hall Commons', hours: '7am - 10pm', verified: true }
 ];
-import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc, arrayUnion} from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { auth } from "../firebaseConfig";
 import {sendNotification} from "../utils/sendNotifications"; // if you need current user
@@ -228,7 +228,10 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
 
             const docRef = await addDoc(collection(db, "listings"), listingData);
             await updateDoc(docRef, { id: docRef.id }); // ✅ store ID in document
-
+            const userListingsRef = doc(db, "users", user.uid);
+            await updateDoc(userListingsRef, {
+                myListings: arrayUnion(docRef.id),
+            });
             console.log("✅ Created listing with ID:", docRef.id);
             await sendNotification({
                 userId: user.uid,
