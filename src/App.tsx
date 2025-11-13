@@ -41,6 +41,7 @@ import { CheckCircle, Package, ArrowLeftRight, Calendar } from 'lucide-react';
 import { Toaster } from './components/ui/sonner';
 import { DarkModeProvider, useDarkMode } from './contexts/DarkModeContext';
 import { CreditProvider } from "./contexts/CreditContext";
+import LandingPage from "./components/LandingPage";
 
 export interface Notification {
   id: number;
@@ -53,7 +54,7 @@ export interface Notification {
 }
 
 function AppContent() {
-  const [currentScreen, setCurrentScreen] = useState<string>('login');
+  const [currentScreen, setCurrentScreen] = useState<string>('landing');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [selectedMeetingSpot, setSelectedMeetingSpot] = useState<string>('');
   const [showSplash, setShowSplash] = useState(false);
@@ -164,10 +165,10 @@ function AppContent() {
     // Add to my listings (newest first)
     setMyListings(prev => [fullListing, ...prev]);
     setLatestListing(fullListing);
-    
+
     // Add notification with listing data
     addNotification('listing', 'Listing published', 'Your item is now visible to all campus students', fullListing);
-    
+
     // Show confirmation modal
     showConfirmation(
       <Package className="w-8 h-8 text-white" />,
@@ -235,6 +236,8 @@ function AppContent() {
 
   const renderScreen = () => {
     switch (currentScreen) {
+      case 'landing':
+        return <LandingPage navigateTo={navigateTo} />;
       case 'login':
         return <LoginScreen navigateTo={navigateTo} />;
       case 'signup':
@@ -276,8 +279,8 @@ function AppContent() {
       case 'barter-offer':
         return <BarterOfferScreen item={selectedItem} navigateTo={navigateTo} />;
       case 'counter-offer':
-        return <CounterOfferScreen 
-          item={selectedItem} 
+        return <CounterOfferScreen
+          item={selectedItem}
           counterOffer={{
             title: 'Vintage Leather Jacket',
             description: 'Size L, excellent condition',
