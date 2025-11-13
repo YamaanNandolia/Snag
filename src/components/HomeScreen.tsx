@@ -10,6 +10,7 @@ import { useCredits } from "../contexts/CreditContext";
 //for something else:
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import SnagLogo from '../assets/Snag.png';
 
 const ICON_MAP: Record<string, React.ElementType> = {
     BookOpen,
@@ -518,10 +519,13 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
           <div className="flex items-center justify-between mb-4">
             {/* Logo Icon */}
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
-                <BoxLogo className="text-white" size={20} />
-              </div>
-              <h1 className={`font-semibold ${darkMode ? 'text-purple-400' : 'text-[#9333ea]'}`}>Snag</h1>
+                <div className="flex items-center gap-3">
+                    <img
+                        src={SnagLogo}
+                        className="w-10 h-10 object-contain"
+                        alt="Snag logo"
+                    />
+                </div>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -587,7 +591,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
                   <button
                     key={tag}
                     onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1.5 rounded-full border transition-all text-sm font-medium whitespace-nowrap ${
+                    className={`px-3 py-1.5 rounded-full border transition-all text-xs font-medium whitespace-nowrap ${
                       selectedTags.includes(tag)
                         ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-md'
                         : darkMode
