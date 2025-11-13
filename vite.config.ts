@@ -4,7 +4,6 @@
   import * as path from 'path';
 
   export default defineConfig({
-      base: '/Snag/',
     plugins: [react()],
     base: '/Snag/',
     resolve: {
