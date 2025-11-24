@@ -11,6 +11,8 @@ import { useCredits } from "../contexts/CreditContext";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import SnagLogo from '../assets/Snag.png';
+import { Funnel } from 'lucide-react';
+
 
 const ICON_MAP: Record<string, React.ElementType> = {
     BookOpen,
@@ -425,6 +427,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
     const [listings, setListings] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [showFilters, setShowFilters] = useState(false);
   const { darkMode } = useDarkMode();
   const [mode, setMode] = useState<'credits' | 'trade'>('credits');
   const [searchQuery, setSearchQuery] = useState('');
@@ -547,17 +550,48 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative mb-3">
-            <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${darkMode ? 'text-gray-400' : 'text-[#888]'}`} />
-            <input
-              type="text"
-              placeholder="Search items or descriptions"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full pl-12 pr-4 py-3 rounded-full backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20 text-white placeholder:text-gray-400' : 'bg-white/80 border-white/60 text-[#222] placeholder:text-[#888]'} border shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400/50`}
-            />
-          </div>
+            {/* Search Bar + Filter Button */}
+            <div className="flex items-center gap-2 mb-3">
+                {/* Search Input */}
+                <div className="relative flex-1">
+                    <Search
+                        className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${
+                            darkMode ? "text-gray-400" : "text-[#888]"
+                        }`}
+                    />
+                    <input
+                        type="text"
+                        placeholder="Search items or descriptions"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`w-full pl-12 pr-4 py-2.5 rounded-full backdrop-blur-xl ${
+                            darkMode
+                                ? "bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+                                : "bg-white/80 border-white/60 text-[#222] placeholder:text-[#888]"
+                        } border shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400/50`}
+                    />
+                </div>
+
+                {/* Funnel Filter Toggle */}
+                <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`p-2 rounded-full transition-all border ${
+                        darkMode
+                            ? "bg-white/10 border-white/20 hover:bg-white/20"
+                            : "bg-white/80 border-white/60 hover:bg-white"
+                    }`}
+                >
+                    <Funnel
+                        className={`w-5 h-5 transition-transform ${
+                            showFilters
+                                ? "rotate-90 text-purple-600"
+                                : darkMode
+                                    ? "text-gray-600"
+                                    : "text-[#555]"
+                        }`}
+                    />
+                </button>
+            </div>
 
           {/* Pill Toggle */}
           <div className="mb-3">
@@ -565,65 +599,84 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
           </div>
 
           {/* Event Filter Chips */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
-            {eventFilters.map((event) => (
-              <button
-                key={event.id}
-                onClick={() => toggleEvent(event.id)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
-                  selectedEvents.includes(event.id)
-                    ? 'bg-gradient-to-r ' + event.color + ' text-white shadow-md'
-                    : darkMode 
-                      ? 'bg-white/10 text-gray-300 border border-white/20'
-                      : 'bg-white/60 text-[#555] border border-white/60'
-                }`}
-              >
-                {event.label}
-              </button>
-            ))}
-          </div>
+            {/* Collapsible Filters */}
+            {showFilters && (
+                <>
+                    {/* Event Filter Chips */}
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
+                        {eventFilters.map((event) => (
+                            <button
+                                key={event.id}
+                                onClick={() => toggleEvent(event.id)}
+                                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                                    selectedEvents.includes(event.id)
+                                        ? "bg-gradient-to-r " + event.color + " text-white shadow-md"
+                                        : darkMode
+                                            ? "bg-white/10 text-gray-300 border border-white/20"
+                                            : "bg-white/60 text-[#555] border border-white/60"
+                                }`}
+                            >
+                                {event.label}
+                            </button>
+                        ))}
+                    </div>
 
-          {/* View Toggle & Tag Bar */}
-          <div className="flex items-center justify-between gap-2 mb-3">
-            <div className="flex-1 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-2">
-                {allTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1.5 rounded-full border transition-all text-xs font-medium whitespace-nowrap ${
-                      selectedTags.includes(tag)
-                        ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-md'
-                        : darkMode
-                          ? 'bg-white/10 text-gray-300 border-white/20 hover:bg-white/15'
-                          : 'backdrop-blur-xl bg-white/60 text-[#555] border-white/60 hover:bg-white/80'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
-              </div>
-            </div>
+                    {/* Tags & View Mode */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                        <div className="flex-1 overflow-x-auto no-scrollbar">
+                            <div className="flex items-center gap-2">
+                                {allTags.map((tag) => (
+                                    <button
+                                        key={tag}
+                                        onClick={() => toggleTag(tag)}
+                                        className={`px-3 py-1 rounded-full border transition-all text-xs whitespace-nowrap ${
+                                            selectedTags.includes(tag)
+                                                ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-md"
+                                                : darkMode
+                                                    ? "bg-white/10 text-gray-300 border-white/20 hover:bg-white/15"
+                                                    : "backdrop-blur-xl bg-white/60 text-[#555] border-white/60 hover:bg-white/80"
+                                        }`}
+                                    >
+                                        {tag}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
 
-            <div className={`flex items-center gap-1 ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/60'} border rounded-full p-0.5 flex-shrink-0`}>
-              <button
-                onClick={() => setAndPersistViewMode('list')}
-                className={`p-1.5 rounded-full transition-colors ${
-                  viewMode === 'list' ? 'bg-purple-600 text-white' : darkMode ? 'text-gray-300' : 'text-[#555]'
-                }`}
-              >
-                <List className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setAndPersistViewMode('grid')}
-                className={`p-1.5 rounded-full transition-colors ${
-                  viewMode === 'grid' ? 'bg-purple-600 text-white' : darkMode ? 'text-gray-300' : 'text-[#555]'
-                }`}
-              >
-                <Grid3x3 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
+                        {/* View Switch */}
+                        <div
+                            className={`flex items-center gap-1 ${
+                                darkMode ? "bg-white/10 border-white/20" : "bg-white/60 border-white/60"
+                            } border rounded-full p-0.5 flex-shrink-0`}
+                        >
+                            <button
+                                onClick={() => setAndPersistViewMode("list")}
+                                className={`p-1.5 rounded-full ${
+                                    viewMode === "list"
+                                        ? "bg-purple-600 text-white"
+                                        : darkMode
+                                            ? "text-gray-300"
+                                            : "text-[#555]"
+                                }`}
+                            >
+                                <List className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                                onClick={() => setAndPersistViewMode("grid")}
+                                className={`p-1.5 rounded-full ${
+                                    viewMode === "grid"
+                                        ? "bg-purple-600 text-white"
+                                        : darkMode
+                                            ? "text-gray-300"
+                                            : "text-[#555]"
+                                }`}
+                            >
+                                <Grid3x3 className="w-3.5 h-3.5" />
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
         </div>
       </div>
 
@@ -688,7 +741,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
             <div className="flex justify-center">
               <button
                 onClick={() => setShowCreditModal(false)}
-                className="px-8 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold shadow-lg transition-transform active:scale-95"
+                className="px-8 py-2.5 rounded-2xl bg-gradient-to-r from-purple-500 to-purple-600 text-white font-semibold shadow-lg transition-transform active:scale-95"
               >
                 Got It
               </button>
@@ -730,16 +783,48 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
       className={`w-full backdrop-blur-2xl ${darkMode ? 'bg-white/10 border-white/20 hover:bg-white/15' : 'bg-white/70 border-white/60 hover:shadow-[0_8px_24px_rgba(139,92,246,0.15)]'} rounded-2xl border shadow-[0_4px_16px_rgba(139,92,246,0.08)] overflow-hidden transition-all active:scale-[0.98]`}
     >
       {/* Image - Reduced Height */}
-      <div className="relative h-40">
+      <div className="relative h-24">
         <img src={item.images[0]} alt={item.title} className="w-full h-full object-cover" />
-        {item.isBarter && (
-          <div className="absolute top-2 left-2">
-            <Badge className="backdrop-blur-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg font-medium flex items-center gap-1.5 py-1">
-              <ArrowLeftRight className="w-3.5 h-3.5" />
-              <span className="text-xs">Trade</span>
-            </Badge>
+          {/* BADGE STACK – top-left */}
+          <div className="absolute top-2 left-2 flex flex-col gap-1 z-20">
+
+              {item.pendingConfirmation && (
+                  <Badge
+                      className="
+                      bg-white
+                      text-purple-700
+                      border border-purple-300
+                      shadow-md
+                      flex items-center gap-1
+                      py-1 px-2
+                      rounded-full
+                      font-semibold
+                      text-[10px]
+                      tracking-wide
+                      uppercase
+                      animate-[pulse_2s_ease-in-out_infinite]
+                    "
+                  >
+                      Pending
+                  </Badge>
+              )}
+
+              {/* Trade Badge */}
+              {item.isBarter && (
+                  <Badge
+                      className="
+                                backdrop-blur-xl bg-gradient-to-r from-purple-500 to-purple-600
+                                text-white border-0 shadow-lg
+                                flex items-center gap-1.5
+                                py-1 px-2 rounded-full text-xs
+                              "
+                  >
+                      <ArrowLeftRight className="w-3.5 h-3.5" />
+                      Trade
+                  </Badge>
+              )}
+
           </div>
-        )}
         {!item.isBarter && (
           <div className="absolute top-2 right-2">
             <div className={`backdrop-blur-xl ${darkMode ? 'bg-black/60' : 'bg-white/90'} rounded-full px-2.5 py-1 border border-white/60 shadow-md flex items-center gap-1`}>
@@ -751,7 +836,7 @@ function CompactMarketplaceCard({ item, navigateTo, darkMode }: any) {
       </div>
 
       {/* Content - Compact */}
-      <div className="p-3 text-left">
+      <div className="p-2 text-left">
         {/* Title - Truncated to 1-2 lines */}
         <h3 className={`font-semibold text-sm mb-1 line-clamp-2 ${darkMode ? 'text-white' : 'text-[#222]'}`}>{item.title}</h3>
         
