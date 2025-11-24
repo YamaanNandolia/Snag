@@ -15,7 +15,7 @@ const MEETING_SPOTS = [
   { id: 4, name: 'Recreation Center Lobby', hours: '5am - 11pm', verified: true },
   { id: 5, name: 'Dining Hall Commons', hours: '7am - 10pm', verified: true }
 ];
-import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc, arrayUnion} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, serverTimestamp, updateDoc, arrayUnion, increment} from "firebase/firestore";
 import { db } from "../firebaseConfig";
 import { auth } from "../firebaseConfig";
 import {sendNotification} from "../utils/sendNotifications"; // if you need current user
@@ -169,7 +169,7 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
             return;
         }
         if (!selectedSpot) {
-            setMeetingSpotError('Please select a meeting spot');
+            setMeetingSpotError('Please select a pickup spot');
             return;
         }
         if (!selectedRecommendedTime && (!customTime || !customDate)) {
@@ -222,7 +222,9 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
                 createdAt: serverTimestamp(),
                 isBarter: false,
                 status: true,
-
+                pendingConfirmation: false,
+                proposedSpot: "",
+                proposedTime: "",
                 time: "Just now",
             };
 
@@ -231,6 +233,10 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
             const userListingsRef = doc(db, "users", user.uid);
             await updateDoc(userListingsRef, {
                 myListings: arrayUnion(docRef.id),
+            });
+            // ⭐ Add 10 credits to the user
+            await updateDoc(userListingsRef, {
+                credits: increment(10),
             });
             console.log("✅ Created listing with ID:", docRef.id);
             await sendNotification({
@@ -387,13 +393,14 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
             <Label>Condition</Label>
             <Select value={condition} onValueChange={setCondition}>
               <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Select condition" />
+                <SelectValue placeholder="Select item condition" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="like-new">Like New</SelectItem>
                 <SelectItem value="good">Good</SelectItem>
                 <SelectItem value="fair">Fair</SelectItem>
+                <SelectItem value="used">Used</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -442,7 +449,7 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
           </div>
 
           <div>
-            <Label>Auto-Suggested Credits</Label>
+            <Label>Auto-Suggested Price</Label>
             <div className="flex items-center gap-2 mt-1">
               <Input
                 type="number"
@@ -480,7 +487,7 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
         <div className={`backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/60'} rounded-3xl border p-4`}>
           <h3 className={`font-semibold mb-2 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-[#222]'}`}>
             <MapPin className="w-5 h-5 text-purple-600" />
-            Meeting Spot
+            Pickup Spot
           </h3>
           <div className="backdrop-blur-xl bg-purple-50/50 border border-purple-200/50 rounded-xl p-3 mb-3 flex items-start gap-2">
             <Shield className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -518,7 +525,7 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
         <div className={`backdrop-blur-xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/60 border-white/60'} rounded-3xl border p-4`}>
           <h3 className={`font-semibold mb-3 flex items-center gap-2 ${darkMode ? 'text-white' : 'text-[#222]'}`}>
             <Clock className="w-5 h-5 text-purple-600" />
-            Preferred Meeting Time
+            Preferred Pickup Time
           </h3>
           
           {/* Recommended Slots */}
@@ -605,6 +612,15 @@ export default function CreateListingScreen({ navigateTo, onPublish, prefilledCi
             </div>
           </div>
         </div>
+          {/* Bottom Publish Button */}
+          <div className="pt-4 pb-16">
+              <button
+                  onClick={handlePublish}
+                  className="w-full py-3 rounded-full bg-gradient-to-r from-purple-500 to-purple-600 text-white font-medium hover:shadow-lg transition-all"
+              >
+                  Publish
+              </button>
+          </div>
       </div>
     </div>
   );

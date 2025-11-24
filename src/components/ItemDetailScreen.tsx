@@ -55,11 +55,13 @@ export default function ItemDetailScreen({ item, navigateTo }: any) {
       <div className="max-w-md mx-auto pb-32">
         {/* Image Carousel */}
         <div className="relative">
-          <ImageCarousel 
-            images={item.images || [item.image]}
-            alt={item.title}
-            aspectRatio="aspect-square"
-          />
+            <ImageCarousel
+                images={item.images || [item.image]}
+                alt={item.title}
+                aspectRatio="aspect-square"
+                onClick={() => navigateTo("image-viewer", { images: item.images })}
+                enableZoom={true}
+            />
           {item.isBarter ? (
             <div className="absolute top-4 left-4 z-10">
               <Badge className="backdrop-blur-xl bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg font-medium flex items-center gap-1.5">

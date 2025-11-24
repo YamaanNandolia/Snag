@@ -194,7 +194,7 @@ export default function ProfileScreen({ navigateTo, myListings = [] }: any) {
         <Tabs defaultValue="listings" className="w-full">
           <TabsList className={`w-full backdrop-blur-2xl ${darkMode ? 'bg-white/10 border-white/20' : 'bg-white/70 border-white/60'} border rounded-2xl p-1 mb-4`}>
             <TabsTrigger value="listings" className="flex-1 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-medium">
-              My Listings
+              My Items
             </TabsTrigger>
             <TabsTrigger value="wallet" className="flex-1 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white font-medium">
               Credit History
