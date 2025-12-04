@@ -15,6 +15,7 @@ export async function sendNotification({
     type: string;
     relatedItemId?: string;
     metadata?: Record<string, any>;
+    read: boolean;
 }) {
     if (!userId) throw new Error("❌ sendNotification: userId is required");
 
@@ -26,7 +27,7 @@ export async function sendNotification({
         relatedItemId: relatedItemId || null,
         metadata: metadata || {},
         createdAt: serverTimestamp(),
-        unread: true,
+        read: false,
     });
 
     console.log(`✅ Notification sent to ${userId}`);

@@ -3,16 +3,20 @@ import { Search, Bell, TrendingUp, Sparkles, Package, BookOpen, Armchair, Coins,
 import PillToggle from './PillToggle';
 import { Badge } from './ui/badge';
 import { Avatar, AvatarFallback } from './ui/avatar';
-import ImageCarousel from './ImageCarousel';
-import BoxLogo from './BoxLogo';
 import { useDarkMode } from '../contexts/DarkModeContext';
 import { useCredits } from "../contexts/CreditContext";
 //for something else:
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebaseConfig";
 import SnagLogo from '../assets/Snag.png';
 import { Funnel } from 'lucide-react';
+import {
+    collection,
+    getDocs,
+    onSnapshot,
+    query,
+    where
+} from "firebase/firestore";
 
+import { db, auth } from "../firebaseConfig";
 
 const ICON_MAP: Record<string, React.ElementType> = {
     BookOpen,
@@ -428,6 +432,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [showFilters, setShowFilters] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
   const { darkMode } = useDarkMode();
   const [mode, setMode] = useState<'credits' | 'trade'>('credits');
   const [searchQuery, setSearchQuery] = useState('');
@@ -459,21 +464,6 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
     localStorage.setItem('viewMode', mode);
   };
 
-    /*useEffect(() => {
-        async function fetchListings() {
-            try {
-                const response = await axios.get('https://yourserver.com/api/listings');
-                setListings(response.data);
-
-            } catch (err: any) {
-                setError('Failed to load listings.');
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        fetchListings();
-    }, []);*/
 
 
 
@@ -498,6 +488,22 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
         }
 
         fetchListings();
+    }, []);
+
+
+    useEffect(() => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const notificationsRef = collection(db, "users", user.uid, "notifications");
+
+        const q = query(notificationsRef, where("read", "==", false));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setUnreadCount(snapshot.size);
+        });
+
+        return () => unsubscribe();
     }, []);
 
     if (loading) return <div>Loading listings...</div>;
@@ -543,7 +549,7 @@ export default function HomeScreen({ navigateTo, notificationCount = 0 }: any) {
                 className={`relative p-2 rounded-full ${darkMode ? 'hover:bg-white/10' : 'hover:bg-white/50'} transition-colors`}
               >
                 <Bell className={`w-6 h-6 ${darkMode ? 'text-white' : 'text-[#222]'}`} />
-                {notificationCount > 0 && (
+                {unreadCount > 0 && (
                   <div className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
                 )}
               </button>

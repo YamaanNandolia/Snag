@@ -1,27 +1,90 @@
 import { useEffect, useState } from "react";
-import {ArrowLeft, Package, CheckCircle, MapPin, ShoppingBag, CheckCheck, Clock} from "lucide-react";
+import {
+    ArrowLeft,
+    Package,
+    CheckCircle,
+    MapPin,
+    ShoppingBag,
+    CheckCheck,
+    Clock
+} from "lucide-react";
 import { useDarkMode } from "../contexts/DarkModeContext";
 import { auth, db } from "../firebaseConfig";
-import { collection, query, orderBy, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+    collection,
+    query,
+    orderBy,
+    where,
+    onSnapshot,
+    getDocs,
+    writeBatch,
+    doc,
+    updateDoc,
+    deleteDoc,
+    setDoc
+} from "firebase/firestore";
 import { toast } from "sonner@2.0.3";
 import { sendNotification } from "../utils/sendNotifications";
 
+/* ------------------------------------------
+   Utility: Generate unique 4-digit codes
+------------------------------------------- */
+function generateTradeCodes() {
+    const make = () => Math.floor(1000 + Math.random() * 9000).toString();
+    let buyerCode = make();
+    let sellerCode = make();
+
+    while (buyerCode === sellerCode) sellerCode = make();
+
+    return { buyerCode, sellerCode };
+}
+
+/* ------------------------------------------
+   MAIN NOTIFICATIONS SCREEN
+------------------------------------------- */
 export default function NotificationsScreen({ navigateTo }: any) {
     const { darkMode } = useDarkMode();
     const [notifications, setNotifications] = useState<any[]>([]);
 
-    // 🔥 Fetch notifications in realtime for the logged-in user
+    /* ------------------------------------------
+       Mark all notifications as read on open
+    ------------------------------------------- */
+    async function markAllAsRead() {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const ref = collection(db, "users", user.uid, "notifications");
+        const q = query(ref, where("read", "==", false));
+        const snap = await getDocs(q);
+
+        if (snap.empty) return;
+
+        const batch = writeBatch(db);
+        snap.docs.forEach((docSnap) => batch.update(docSnap.ref, { read: true }));
+        await batch.commit();
+    }
+
+    useEffect(() => {
+        markAllAsRead();
+    }, []);
+
+    /* ------------------------------------------
+       Realtime listener for notifications
+    ------------------------------------------- */
     useEffect(() => {
         const user = auth.currentUser;
         if (!user) return;
 
-        const q = query(collection(db, "users", user.uid, "notifications"), orderBy("createdAt", "desc"));
+        const q = query(
+            collection(db, "users", user.uid, "notifications"),
+            orderBy("createdAt", "desc")
+        );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const data = snapshot.docs.map((doc) => ({
-                id: doc.id,
-                ...doc.data(),
-                time: "Just now", // Simplified time display
+            const data = snapshot.docs.map((d) => ({
+                id: d.id,
+                ...d.data(),
+                time: "Just now"
             }));
             setNotifications(data);
         });
@@ -29,75 +92,96 @@ export default function NotificationsScreen({ navigateTo }: any) {
         return () => unsubscribe();
     }, []);
 
-    // ✅ Handle meeting acceptance
-    const handleAcceptMeeting = async (notification: any) => {
+    /* ------------------------------------------
+       Accept Meeting Request
+    ------------------------------------------- */
+    const handleAcceptMeeting = async (notif: any) => {
         try {
-            const listingRef = doc(db, "listings", notification.relatedItemId);
+            const listingRef = doc(db, "listings", notif.relatedItemId);
 
             await updateDoc(listingRef, {
                 status: false,
-                meetingSpot: notification.metadata?.proposedSpot,
-                meetingTime: notification.metadata?.proposedTime,
                 pendingConfirmation: false,
+                meetingSpot: notif.metadata?.proposedSpot,
+                meetingTime: notif.metadata?.proposedTime
             });
 
+            // Create trade confirmation
+            const tradeRef = doc(collection(db, "tradeConfirmations"));
+            const { buyerCode, sellerCode } = generateTradeCodes();
+
+            await setDoc(tradeRef, {
+                listingId: notif.relatedItemId,
+                buyerId: notif.metadata?.buyerId,
+                sellerId: auth.currentUser?.uid,
+                buyerCode,
+                sellerCode,
+                buyerConfirmed: false,
+                sellerConfirmed: false,
+                createdAt: Date.now()
+            });
+
+            // Notify buyer
             await sendNotification({
-                userId: notification.metadata?.buyerId,
+                userId: notif.metadata?.buyerId,
                 title: "✅ Meeting Accepted!",
-                message: `${auth.currentUser?.displayName || "The seller"} accepted your meeting proposal for "${
-                    notification.title
-                }".\n📍 Location: ${notification.metadata?.proposedSpot}\n🕒 Time: ${notification.metadata?.proposedTime}`,
+                message: `${auth.currentUser?.displayName || "The seller"} accepted your proposal.`,
                 type: "trade",
+                read: false,
             });
 
+            await deleteDoc(
+                doc(db, "users", auth.currentUser!.uid, "notifications", notif.id)
+            );
 
-            // ✅ Delete notification after accepting
-            const notifRef = doc(db, "users", auth.currentUser?.uid || "", "notifications", notification.id);
-            await deleteDoc(notifRef);
-
-            toast.success("Meeting proposal accepted!");
+            toast.success("Meeting accepted!");
         } catch (err) {
-            console.error("🔥 Accept meeting error:", err);
-            toast.error("Failed to accept meeting proposal.");
+            console.error(err);
+            toast.error("Error accepting meeting.");
         }
     };
 
-    const handleDenyMeeting = async (notification: any) => {
+    /* ------------------------------------------
+       Deny Meeting Request
+    ------------------------------------------- */
+    const handleDenyMeeting = async (notif: any) => {
         try {
-            const listingRef = doc(db, "listings", notification.relatedItemId);
-
-            await updateDoc(listingRef, {
+            await updateDoc(doc(db, "listings", notif.relatedItemId), {
                 status: true,
-                pendingConfirmation: false,
+                pendingConfirmation: false
             });
 
             await sendNotification({
-                userId: notification.metadata?.buyerId,
+                userId: notif.metadata?.buyerId,
                 title: "❌ Meeting Denied",
-                message: `${auth.currentUser?.displayName || "The seller"} declined your meeting proposal for "${
-                    notification.title
-                }". The listing has been reopened.`,
+                message: "The seller denied your meeting proposal.",
                 type: "trade",
+                read: false,
             });
 
-            // ✅ Delete notification after denying
-            const notifRef = doc(db, "users", auth.currentUser?.uid || "", "notifications", notification.id);
-            await deleteDoc(notifRef);
+            await deleteDoc(
+                doc(db, "users", auth.currentUser!.uid, "notifications", notif.id)
+            );
 
-            toast.warning("Meeting proposal denied and listing reopened.");
+            toast.warning("Meeting denied.");
         } catch (err) {
-            console.error("🔥 Deny meeting error:", err);
-            toast.error("Failed to deny meeting proposal.");
+            console.error(err);
+            toast.error("Error denying meeting.");
         }
     };
 
+    /* ------------------------------------------
+       RENDER UI
+    ------------------------------------------- */
     return (
         <div
             className={`min-h-screen pb-8 ${
-                darkMode ? "bg-black" : "bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100"
+                darkMode
+                    ? "bg-black"
+                    : "bg-gradient-to-br from-purple-50 via-lavender-50 to-purple-100"
             }`}
         >
-            {/* Header */}
+            {/* HEADER */}
             <div
                 className={`sticky top-0 z-20 backdrop-blur-xl ${
                     darkMode ? "bg-black/70 border-white/10" : "bg-white/10 border-white/30"
@@ -109,56 +193,53 @@ export default function NotificationsScreen({ navigateTo }: any) {
                             onClick={() => navigateTo("home")}
                             className={`p-2 rounded-full ${
                                 darkMode ? "hover:bg-white/10" : "hover:bg-white/50"
-                            } transition-colors`}
+                            }`}
                         >
-                            <ArrowLeft className={`w-6 h-6 ${darkMode ? "text-white" : "text-[#222]"}`} />
+                            <ArrowLeft
+                                className={`w-6 h-6 ${
+                                    darkMode ? "text-white" : "text-[#222]"
+                                }`}
+                            />
                         </button>
-                        <h2 className={`font-semibold text-xl ${darkMode ? "text-purple-400" : "text-[#9333ea]"}`}>
+                        <h2
+                            className={`font-semibold text-xl ${
+                                darkMode ? "text-purple-400" : "text-[#9333ea]"
+                            }`}
+                        >
                             Notifications
                         </h2>
                     </div>
                 </div>
             </div>
 
-            {/* Notifications List */}
+            {/* LIST */}
             {notifications.length > 0 ? (
                 <div className="max-w-md mx-auto px-4 py-4 space-y-6">
-                    <div className="space-y-3">
-                        <h3 className={`font-semibold px-2 ${darkMode ? "text-white" : "text-[#222]"}`}>Today</h3>
-                        {notifications.map((notification) => (
-                            <NotificationCard
-                                key={notification.id}
-                                notification={notification}
-                                darkMode={darkMode}
-                                onClick={() => console.log("Clicked:", notification)}
-                                onAccept={handleAcceptMeeting}
-                                onDeny={handleDenyMeeting}
-                            />
-                        ))}
-                    </div>
+                    {notifications.map((n) => (
+                        <NotificationCard
+                            key={n.id}
+                            notification={n}
+                            darkMode={darkMode}
+                            onAccept={handleAcceptMeeting}
+                            onDeny={handleDenyMeeting}
+                        />
+                    ))}
                 </div>
             ) : (
                 <div className="max-w-md mx-auto px-4 py-16 text-center">
-                    <div
-                        className={`backdrop-blur-2xl ${
-                            darkMode ? "bg-white/10 border-white/20" : "bg-white/70 border-white/60"
-                        } rounded-3xl p-12 border shadow-[0_8px_24px_rgba(139,92,246,0.12)]`}
-                    >
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center mx-auto mb-4">
-                            <CheckCheck className="w-10 h-10 text-purple-500" />
-                        </div>
-                        <h3 className={`font-semibold mb-2 ${darkMode ? "text-white" : "text-[#222]"}`}>All caught up!</h3>
-                        <p className={darkMode ? "text-gray-300" : "text-[#555]"}>You have no new notifications</p>
-                    </div>
+                    <CheckCheck className="w-12 h-12 text-purple-400 mx-auto mb-4" />
+                    <p className={darkMode ? "text-white" : "text-[#333]"}>
+                        You have no notifications.
+                    </p>
                 </div>
             )}
         </div>
     );
 }
 
-/* -------------------------------
-   NotificationCard Component
---------------------------------*/
+/* ------------------------------------------
+   Notification Card Component
+------------------------------------------- */
 function NotificationCard({ notification, onClick, onAccept, onDeny, darkMode }: any) {
     const iconMap: any = {
         meeting: MapPin,
