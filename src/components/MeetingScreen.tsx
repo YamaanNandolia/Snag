@@ -3,20 +3,12 @@ import { ArrowLeft, MapPin, Clock, Shield, CheckCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { toast } from 'sonner@2.0.3';
-import { useEffect } from 'react';
-import axios from 'axios';
-import { useDarkMode } from '../contexts/DarkModeContext';
-import { Badge } from './ui/badge';
-import { Avatar, AvatarFallback } from './ui/avatar';
 import { useCredits } from '../contexts/CreditContext';
 import { doc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import { sendNotification } from '../utils/sendNotifications';
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 import { increment } from 'firebase/firestore';
-
+import { collection, doc as docRef, setDoc } from "firebase/firestore";
 const meetingSpots = [
     { id: 1, name: 'Main Library Lobby', distance: '0.2 mi', hours: '24/7', verified: true },
     { id: 2, name: 'Student Union Entrance', distance: '0.3 mi', hours: '6am - 11pm', verified: true },
@@ -69,6 +61,20 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
         setTimeError('');
         setDateError('');
     };
+
+    function generateTradeCodes() {
+        const makeCode = () => Math.floor(1000 + Math.random() * 9000).toString();
+
+        let buyerCode = makeCode();
+        let sellerCode = makeCode();
+
+        // Ensure codes are different
+        while (sellerCode === buyerCode) {
+            sellerCode = makeCode();
+        }
+
+        return { buyerCode, sellerCode };
+    }
 
     const handleCustomTimeChange = (value: string) => {
         if (value) {
@@ -219,7 +225,8 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
                             proposedTime: selectedTimeLabel,
                             buyerId: user.uid,
                             buyerName: user.displayName || user.email || 'Anonymous'
-                        }
+                        },
+                        read: false,
                     });
 
                     toast.warning('Meeting proposal sent to seller for approval!');
@@ -231,6 +238,31 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
             // ✅ Normal case: no mismatch, confirm immediately
             setCredits(credits - item.credits);
             console.log('✅ Updated credits locally');
+
+
+
+            const tradeConfirmationRef = docRef(collection(db, "tradeConfirmations"));
+
+            const buyerId = user.uid;
+            const sellerId = item?.seller?.id;
+            const { buyerCode, sellerCode } = generateTradeCodes();
+
+            if (!sellerId) {
+                console.warn("⚠ No seller ID found — cannot create trade confirmation entry");
+            } else {
+                await setDoc(tradeConfirmationRef, {
+                    listingId: item.id,
+                    buyerId: buyerId,
+                    sellerId: sellerId,
+                    buyerConfirmed: false,
+                    sellerConfirmed: false,
+                    createdAt: Date.now(),
+                    buyerCode: buyerCode,
+                    sellerCode: sellerCode
+                });
+
+                console.log("✅ Trade confirmation record created:", tradeConfirmationRef.id);
+            }
 
             console.log('Item before updating:', item);
             console.log('Listing path:', `listings/${item.id}`);
@@ -257,7 +289,8 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
                 title: 'Your item has been snagged up!',
                 message: `${user.displayName || 'A buyer'} picked up your item "${item.title}".`,
                 type: 'listing',
-                relatedItemId: item.id
+                relatedItemId: item.id,
+                read: false,
             });
 
             await sendNotification({
@@ -266,7 +299,8 @@ export default function MeetingScreen({ item, navigateTo, onSelectSpot }: any) {
                 message: `You successfully snagged "${item.title}" from ${
                     item.seller?.displayName || 'another user'
                 }.`,
-                type: 'trade'
+                type: 'trade',
+                read: false,
             });
 
             console.log('✅ Sent notifications');
